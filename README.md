@@ -22,7 +22,7 @@ To try the module out:
 ```ruby
 LdapLookup.configuration do |config|
       config.host = < your host > # "ldap.umich.edu"
-      config.port = < your port > # "986" the default setting to "389"
+      config.port = < your port > # "986" the default is set to "389" so this optional
       config.base = < your LDAP base > # "dc=umich,dc=edu"
       config.dept_attribute = < your dept attribute > # "umichPostalAddressData"
       config.group_attribute = < your group email attribute > # "umichGroupEmail"
