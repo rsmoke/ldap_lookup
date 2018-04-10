@@ -3,13 +3,13 @@ require 'helpers/configuration'
 module LdapLookup
   require 'net/ldap'
 
-  extend CONFIGURATION
+  extend Configuration
 
-  define_setting :host, "ldap.umich.edu"
+  define_setting :host
   define_setting :port, "389"
-  define_setting :base, "dc=umich,dc=edu"
-  define_setting :dept_attribute, "umichPostalAddressData"
-  define_setting :group_attribute, "umichGroupEmail"
+  define_setting :base
+  define_setting :dept_attribute
+  define_setting :group_attribute
 
     # this was developed using guidence from this gist:
     # https://gist.githubusercontent.com/jeffjohnson9046/7012167/raw/86587b9637ddc2ece7a42df774980fa9c0aac9b3/ruby-ldap-sample.rb
@@ -36,9 +36,9 @@ module LdapLookup
     # network connection to the LDAP server.
     #######################################################################################################################
     def self.ldap_connection
-      ldap = Net::LDAP.new  host: :host, # your LDAP host name or IP goes here,
-        port: :port, # your LDAP host port goes here,
-        base: :base, # the base of your AD tree goes here,
+      ldap = Net::LDAP.new  host: LdapLookup.host, # your LDAP host name or IP goes here,
+        port: LdapLookup.port, # your LDAP host port goes here,
+        base: LdapLookup.base, # the base of your AD tree goes here,
         auth: {
           :method => :anonymous
         }
@@ -62,7 +62,7 @@ module LdapLookup
     def LdapLookup.get_dept(uniqname = nil)
       ldap = ldap_connection
       search_param = uniqname # the AD account goes here
-      result_attrs = [:dept_attribute] # Whatever you want to bring back in your result set goes here
+      result_attrs = [LdapLookup.dept_attribute] # Whatever you want to bring back in your result set goes here
       # Build filter
       search_filter = Net::LDAP::Filter.eq("uid", search_param)
       # Execute search
@@ -119,7 +119,7 @@ module LdapLookup
       member_hash = {}
       # GET THE MEMBERS OF AN E-MAIL DISTRIBUTION LIST
       search_param = group_name # the name of the distribution list you're looking for goes here
-      result_attrs = ["cn", :group_attribute, "member"]
+      result_attrs = ["cn", LdapLookup.group_attribute, "member"]
       # Build filter
       search_filter = Net::LDAP::Filter.eq("cn", search_param)
       group_filter = Net::LDAP::Filter.eq("objectClass", "group")
