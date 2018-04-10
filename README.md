@@ -1,4 +1,4 @@
-# LdapLookup for Ruby
+# LdapLookup for Ruby [![Gem Version](https://badge.fury.io/rb/ldap_lookup.svg)](https://badge.fury.io/rb/ldap_lookup)
 
 ### Description
 This module is to be used for anonymous lookup of user attributes in the MCommunity service provide at the University of Michigan. It can be easily modifed to use other LDAP server configurations.
