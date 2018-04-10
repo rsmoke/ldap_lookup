@@ -10,10 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["rsmoke@umich.edu"]
 
   spec.summary       = %q{For anonymous lookup of user LDAP attributes.}
-  spec.description   = %q{This module is to be used for anonymous lookup of \
-                          attributes in the MCommunity service provide at the \
-                          University of Michigan. It can be easily modifed to \
-                          use other LDAP server configurations.}
+  spec.description   = %q{This module is to be used for anonymous lookup of attributes in the MCommunity service provide at the University of Michigan. It can be easily modifed to use other LDAP server configurations.}
   spec.homepage      = "https://github.com/rsmoke/ldap_lookup.git"
   spec.license       = "MIT"
 
