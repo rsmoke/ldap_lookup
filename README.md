@@ -1,7 +1,5 @@
 # LdapLookup for Ruby
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/ldap_lookup`. To experiment with that code, run `bin/console` for an interactive prompt.
-
 ### Description
 This module is to be used for anonymous lookup of user attributes in the MCommunity service provide at the University of Michigan. It can be easily modifed to use other LDAP server configurations.
 
