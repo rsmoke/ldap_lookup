@@ -1,4 +1,4 @@
-require 'helpers/configuration'
+require_relative 'helpers/configuration'
 
 module LdapLookup
   require 'net/ldap'

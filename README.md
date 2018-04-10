@@ -5,22 +5,37 @@ Welcome to your new gem! In this directory, you'll find the files you need to be
 ### Description
 This module is to be used for anonymous lookup of user attributes in the MCommunity service provide at the University of Michigan. It can be easily modifed to use other LDAP server configurations.
 
-## Try it out
-To try the module out you may clone the repo and run the ldaptest.rb script
-```ruby
-ruby ./ldaptest.rb
-```
+---
+
+### Try it out
+
 Requirements:
 * Ruby at least 2.0.0
 * Gem 'net-ldap' ~> '0.16.1'
 > Install by running the following command at your command prompt_for_action
->
 > *The Net::LDAP (aka net-ldap) gem before 0.16.0 for Ruby has a Missing SSL Certificate Validation.*
 ```bash
 gem install net-ldap
 ```
 
-* Time to try it out
+To try the module out:
+1. Clone the repo
+2. Edit the configurations by opening ldaptest.rb and set the *CONFIGURATION BLOCK* to your environment.
+```ruby
+LdapLookup.configuration do |config|
+      config.host = < your host > # "ldap.umich.edu"
+      config.base = < your LDAP base > # "dc=umich,dc=edu"
+      config.dept_attribute = < your dept attribute > # "umichPostalAddressData"
+      config.group_attribute = < your group email attribute > # "umichGroupEmail"
+end
+```
+
+3. run the ldaptest.rb script
+```ruby
+ruby ./ldaptest.rb
+```
+
+---
 
 ### Installation
 
@@ -38,15 +53,41 @@ Or install it yourself as:
 
     $ gem install ldap_lookup
 
-### Usage
+In your application create a file config/initializers/ldap_lookup.rb
+```ruby
+LdapLookup.configuration do |config|
+    config.host = < your host > # "ldap.umich.edu"
+    config.port = < your port > # "954" port 389 is set by default
+    config.base = < your LDAP base > # "dc=umich,dc=edu"
+    config.dept_attribute = < your dept attribute > # "umichPostalAddressData"
+    config.group_attribute = < your group email attribute > # "umichGroupEmail"
+end
+```
 
-TODO: Write usage instructions here
+---
 
-### Development
+### Methods available
 
-After checking out the repo, run `bin/setup` to install dependencies. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+get_simple_name: returns the Display Name
+```
+LdapLookup.get_simple_name(uniqname = nil)
+```
+get_dept: returns the users Department_name
+```
+LdapLookup.get_dept(uniqname = nil)
+```
+get_email: returns the users email address
+```
+LdapLookup.get_email(uniqname = nil)
+```
+is_member_of_group?: returns true/false if uniqname is a member of the specified group
+```
+LdapLookup.is_member_of_group?(uid = nil, group_name = nil)
+```
+get_email_distribution_list: Returns the list of emails that are associated to a group.
+```
+LdapLookup.get_email_distribution_list(group_name = nil)
+```
 
 ### Contributing
 

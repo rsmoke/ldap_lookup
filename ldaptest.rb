@@ -1,11 +1,19 @@
 #!/usr/bin/env ruby
 
-require_relative 'helpers/configuration'
 require_relative 'lib/ldap_lookup'
 
 class Ldaptest
 
   include LdapLookup
+
+############## CONFIGURATION BLOCK ###################
+  LdapLookup.configuration do |config|
+    config.host = "ldap.umich.edu"
+    config.base = "dc=umich,dc=edu"
+    config.dept_attribute = "umichPostalAddressData"
+    config.group_attribute = "umichGroupEmail"
+  end
+#######################################################
 
   def initialize(name=nil)
     @uid = name
