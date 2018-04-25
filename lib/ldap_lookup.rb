@@ -1,13 +1,13 @@
-require_relative 'helpers/configuration'
+require 'helpers/configuration'
 
 module LdapLookup
   require 'net/ldap'
 
   extend Configuration
 
-  define_setting :host
-  define_setting :port, "389"
-  define_setting :base
+  define_setting :host  # your LDAP host name or IP goes here
+  define_setting :port, "389" # your LDAP host port goes here. Default is set to 389
+  define_setting :base  # the base of your AD tree goes here
   define_setting :dept_attribute
   define_setting :group_attribute
 
@@ -36,12 +36,12 @@ module LdapLookup
     # network connection to the LDAP server.
     #######################################################################################################################
     def self.ldap_connection
-      ldap = Net::LDAP.new  host: LdapLookup.host, # your LDAP host name or IP goes here,
-        port: LdapLookup.port, # your LDAP host port goes here,
-        base: LdapLookup.base, # the base of your AD tree goes here,
-        auth: {
-          :method => :anonymous
-        }
+      ldap = Net::LDAP.new  host: host,
+                            port: port,
+                            base: base,
+                            auth: {
+                             :method => :anonymous
+                            }
     end
 
     # GET THE DISPLAY NAME FOR A SINGLE USER
