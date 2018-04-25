@@ -107,7 +107,7 @@ module LdapLookup
           end
         end
       end
-      return FALSE
+      return false
       get_ldap_response(ldap)
     end
 
