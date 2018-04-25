@@ -1,13 +1,13 @@
-require 'helpers/configuration'
+require_relative 'helpers/configuration'
 
 module LdapLookup
   require 'net/ldap'
 
   extend Configuration
 
-  define_setting :host  # your LDAP host name or IP goes here
-  define_setting :port, "389" # your LDAP host port goes here. Default is set to 389
-  define_setting :base  # the base of your AD tree goes here
+  define_setting :host
+  define_setting :port, "389"
+  define_setting :base
   define_setting :dept_attribute
   define_setting :group_attribute
 
@@ -36,16 +36,16 @@ module LdapLookup
     # network connection to the LDAP server.
     #######################################################################################################################
     def self.ldap_connection
-      ldap = Net::LDAP.new  host: host,
-                            port: port,
-                            base: base,
+      ldap = Net::LDAP.new  host: host, # your LDAP host name or IP goes here,
+                            port: port, # your LDAP host port goes here,
+                            base: base, # the base of your AD tree goes here,
                             auth: {
-                             :method => :anonymous
+                              :method => :anonymous
                             }
     end
 
     # GET THE DISPLAY NAME FOR A SINGLE USER
-    def LdapLookup.get_simple_name(uniqname = nil)
+    def self.get_simple_name(uniqname = nil)
       ldap = ldap_connection
       search_param = uniqname # the AD account goes here
       result_attrs = ["displayName"] # Whatever you want to bring back in your result set goes here
@@ -59,10 +59,10 @@ module LdapLookup
     end
 
     # GET THE PRIMARY DEPARTMENT FOR A SINGLE USER
-    def LdapLookup.get_dept(uniqname = nil)
+    def self.get_dept(uniqname = nil)
       ldap = ldap_connection
       search_param = uniqname # the AD account goes here
-      result_attrs = [LdapLookup.dept_attribute] # Whatever you want to bring back in your result set goes here
+      result_attrs = [dept_attribute] # Whatever you want to bring back in your result set goes here
       # Build filter
       search_filter = Net::LDAP::Filter.eq("uid", search_param)
       # Execute search
@@ -73,7 +73,7 @@ module LdapLookup
     end
 
     # GET THE E-MAIL ADDRESS FOR A SINGLE USER
-    def LdapLookup.get_email(uniqname = nil)
+    def self.get_email(uniqname = nil)
       ldap = ldap_connection
       search_param = uniqname # the AD account goes here
       result_attrs = ["mail"] # Whatever you want to bring back in your result set goes here
@@ -90,7 +90,7 @@ module LdapLookup
     # Check if the UID is a member of an LDAP group. This function returns TRUE
     # if uid passed in is a member of group_name passed in. Otherwise it will
     # return false.
-    def LdapLookup.is_member_of_group?(uid = nil, group_name = nil)
+    def self.is_member_of_group?(uid = nil, group_name = nil)
       ldap = ldap_connection
       # GET THE MEMBERS OF AN E-MAIL DISTRIBUTION LIST
       search_param = group_name # the name of the distribution list you're looking for goes here
@@ -113,13 +113,13 @@ module LdapLookup
 
     # ---------------------------------------------------------------------------------------------------------------------
     # Get the Name email and members of an LDAP group as a hash
-    def LdapLookup.get_email_distribution_list(group_name = nil)
+    def self.get_email_distribution_list(group_name = nil)
       ldap = ldap_connection
       result_hash = {}
       member_hash = {}
       # GET THE MEMBERS OF AN E-MAIL DISTRIBUTION LIST
       search_param = group_name # the name of the distribution list you're looking for goes here
-      result_attrs = ["cn", LdapLookup.group_attribute, "member"]
+      result_attrs = ["cn",  group_attribute, "member"]
       # Build filter
       search_filter = Net::LDAP::Filter.eq("cn", search_param)
       group_filter = Net::LDAP::Filter.eq("objectClass", "group")
