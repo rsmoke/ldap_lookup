@@ -10,24 +10,20 @@ This module is to be used for anonymous lookup of user attributes in the MCommun
 Requirements:
 * Ruby at least 2.0.0
 * Gem 'net-ldap' ~> '0.16.1'
-> Install by running the following command at your command prompt_for_action
 > *The Net::LDAP (aka net-ldap) gem before 0.16.0 for Ruby has a Missing SSL Certificate Validation.*
-```bash
-gem install net-ldap
-```
 
 To try the module out:
 1. Clone the repo
 2. Edit the configurations by opening ldaptest.rb and set the *CONFIGURATION BLOCK* to your environment.
-```ruby
+<pre>
 LdapLookup.configuration do |config|
-      config.host = < your host > # "ldap.umich.edu"
-      config.port = < your port > # "986" the default is set to "389" so this optional
-      config.base = < your LDAP base > # "dc=umich,dc=edu"
-      config.dept_attribute = < your dept attribute > # "umichPostalAddressData"
-      config.group_attribute = < your group email attribute > # "umichGroupEmail"
+      config.host = <em>< your host ></em> # "ldap.umich.edu"
+      config.port = <em>< your port ></em> # "986" the default is set to "389" so this optional
+      config.base = <em>< your LDAP base ></em> # "dc=umich,dc=edu"
+      config.dept_attribute = <em>< your dept attribute ></em> # "umichPostalAddressData"
+      config.group_attribute = <em>< your group email attribute ></em> # "umichGroupEmail"
 end
-```
+</pre>
 
 3. run the ldaptest.rb script
 ```ruby
@@ -53,37 +49,37 @@ Or install it yourself as:
     $ gem install ldap_lookup
 
 In your application create a file config/initializers/ldap_lookup.rb
-```ruby
+<pre>
 LdapLookup.configuration do |config|
-    config.host = < your host > # "ldap.umich.edu"
-    config.port = < your port > # "954" port 389 is set by default
-    config.base = < your LDAP base > # "dc=umich,dc=edu"
-    config.dept_attribute = < your dept attribute > # "umichPostalAddressData"
-    config.group_attribute = < your group email attribute > # "umichGroupEmail"
+    config.host = <em>< your host ></em> # "ldap.umich.edu"
+    config.port = <em>< your port ></em> # "954" port 389 is set by default
+    config.base = <em>< your LDAP base ></em> # "dc=umich,dc=edu"
+    config.dept_attribute = <em>< your dept attribute ></em> # "umichPostalAddressData"
+    config.group_attribute = <em>< your group email attribute ></em> # "umichGroupEmail"
 end
-```
+</pre>
 
 ---
 
 ### Methods available
 
-get_simple_name: returns the Display Name
+__get_simple_name:__ returns the Display Name
 ```
 LdapLookup.get_simple_name(uniqname = nil)
 ```
-get_dept: returns the users Department_name
+__get_dept:__ returns the users Department_name
 ```
 LdapLookup.get_dept(uniqname = nil)
 ```
-get_email: returns the users email address
+__get_email:__ returns the users email address
 ```
 LdapLookup.get_email(uniqname = nil)
 ```
-is_member_of_group?: returns true/false if uniqname is a member of the specified group
+__is_member_of_group?:__ returns true/false if uniqname is a member of the specified group
 ```
 LdapLookup.is_member_of_group?(uid = nil, group_name = nil)
 ```
-get_email_distribution_list: Returns the list of emails that are associated to a group.
+__get_email_distribution_list:__ Returns the list of emails that are associated to a group.
 ```
 LdapLookup.get_email_distribution_list(group_name = nil)
 ```
