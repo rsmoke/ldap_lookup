@@ -83,7 +83,7 @@ __get_email_distribution_list:__ Returns the list of emails that are associated 
 ```
 LdapLookup.get_email_distribution_list(group_name = nil)
 ```
-__all_groups_for_user: Returns the list of groups that a user is a member of.
+__all_groups_for_user:__ Returns the list of groups that a user is a member of.
 ```
 LdapLookup.all_groups_for_user(uniqname = nil)
 ```
