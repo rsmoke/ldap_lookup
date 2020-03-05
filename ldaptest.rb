@@ -1,21 +1,20 @@
 #!/usr/bin/env ruby
 
-require_relative 'lib/ldap_lookup'
+require_relative "lib/ldap_lookup"
 
 class Ldaptest
-
   include LdapLookup
 
-############## CONFIGURATION BLOCK ###################
+  ############## CONFIGURATION BLOCK ###################
   LdapLookup.configuration do |config|
     config.host = "ldap.umich.edu"
     config.base = "dc=umich,dc=edu"
     config.dept_attribute = "umichPostalAddressData"
     config.group_attribute = "umichGroupEmail"
   end
-#######################################################
+  #######################################################
 
-  def initialize(name=nil)
+  def initialize(name = nil)
     @uid = name
     @group_uid = nil
   end
@@ -59,6 +58,7 @@ class Ldaptest
     puts "3: get users full name"
     puts "4: get users department"
     puts "5: get users email"
+    puts "55: get all groups a user is a member of"
     puts "+++++++++++++++++++++++++"
     puts "6: get ldap group-name member listing"
     puts "7: check if uid is member of a group"
@@ -72,14 +72,15 @@ class Ldaptest
     when 3 then result_box(LdapLookup.get_simple_name(@uid))
     when 4 then result_box(LdapLookup.get_dept(@uid))
     when 5 then result_box(LdapLookup.get_email(@uid))
+    when 55 then result_box(LdapLookup.all_groups_for_user(@uid))
     when 6 then result_box(LdapLookup.get_email_distribution_list(@group_uid))
-    when 7 then result_box(LdapLookup.is_member_of_group?(@uid,@group_uid))
+    when 7 then result_box(LdapLookup.is_member_of_group?(@uid, @group_uid))
     when 8 then result_box(timestamp)
     when 0 then puts "you chose exit!"
-      throw(:done)
+throw(:done)
     else
       print "\e[2J\e[f"
-      puts "====> Please type 1,2,3,4,5,6,7,8 or 0 only"
+      puts "====> Please type 1,2,3,4,5,55,6,7,8 or 0 only"
       2.times { puts " " }
     end
   end
@@ -92,6 +93,7 @@ class Ldaptest
     end
   end
 end
+
 print "\e[2J\e[f"
 print "Enter a valid UID=> "
 name = gets.chomp.to_s
