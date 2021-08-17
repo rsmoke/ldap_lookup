@@ -40,7 +40,7 @@ RSpec.describe LdapLookup do
 
   context 'when given an invalid uniqname' do
     it 'returns nil when looking users full name' do
-      expect(LdapLookup.get_simple_name(bad_uniqname)).to be_nil
+      expect(LdapLookup.get_simple_name(bad_uniqname)).to eq'not available'
     end
 
     it 'returns nil when looking up users department' do

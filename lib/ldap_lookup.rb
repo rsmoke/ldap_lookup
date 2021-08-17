@@ -53,7 +53,11 @@ module LdapLookup
     search_filter = Net::LDAP::Filter.eq("uid", search_param)
     # Execute search
     ldap.search(filter: search_filter, attributes: result_attrs) { |item|
-      return item.displayName.first
+      begin 
+        return item.displayName.first
+      rescue 
+        return "not available"
+      end
     }
     get_ldap_response(ldap)
   end
