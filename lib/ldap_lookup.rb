@@ -105,9 +105,11 @@ module LdapLookup
     composite_filter = Net::LDAP::Filter.join(search_filter, group_filter)
     # Execute search, extracting the AD account name from each member of the distribution list
     ldap.search(filter: composite_filter, attributes: result_attrs) do |item|
-      item.member.each do |entry|
-        if entry.split(",").first.split("=")[1] == uid
-          return true
+      if item.attribute_names.include?(:member)
+        item.member.each do |entry|
+          if entry.split(",").first.split("=")[1] == uid
+            return true
+          end
         end
       end
     end
