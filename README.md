@@ -9,7 +9,7 @@ This module is to be used for anonymous lookup of user attributes in the MCommun
 
 Requirements:
 * Ruby at least 2.0.0
-* Gem 'net-ldap' ~> '0.16.1'
+* Gem 'net-ldap' ~> '0.17.0'
 > *The Net::LDAP (aka net-ldap) gem before 0.16.0 for Ruby has a Missing SSL Certificate Validation.*
 
 To try the module out:
