@@ -52,13 +52,12 @@ module LdapLookup
     # Build filter
     search_filter = Net::LDAP::Filter.eq("uid", search_param)
     # Execute search
-    ldap.search(filter: search_filter, attributes: result_attrs) { |item|
-      begin 
-        return item.displayName.first
-      rescue 
-        return "not available"
+    result = ldap.search(filter: search_filter, attributes: result_attrs)
+      if result.length != 0
+        return result.first.displayname.first
+      else
+        return "No such user"
       end
-    }
     get_ldap_response(ldap)
   end
 
