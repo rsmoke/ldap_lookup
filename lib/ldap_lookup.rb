@@ -36,35 +36,47 @@ module LdapLookup
       return value unless value.nil?
     end
 
-    "No user #{attribute} found for #{uniqname}"
+    "No #{attribute} found for #{uniqname}"
   ensure
     get_ldap_response(ldap)
   end
 
-  def self.get_simple_name(uniqname)
-    get_user_attribute(uniqname, 'displayname') || get_user_attribute(uniqname, 'mail')
-  end
-
-  def self.get_dept(uniqname)
+  def self.get_nested_attribute(uniqname, nested_attribute)
     ldap = ldap_connection
     search_param = uniqname
-    result_attrs = [dept_attribute]
-
+    # Specify the full nested attribute path using dot notation
+    result_attrs = [nested_attribute.split('.').first]
+  
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
-
+  
     ldap.search(filter: search_filter, attributes: result_attrs) do |item|
-      postal_address_data = item['umichpostaladdressdata']&.first
-      dept_name = postal_address_data&.split('}:{')&.first&.split('=')[1]
-      return dept_name unless dept_name.nil?
+      # Split the string into key-value pairs
+      if string1 = item[nested_attribute.split('.').first]&.first
+        key_value_pairs = string1.split('}:{')
+        # Find the key-value pair for addr1
+        target_pair = key_value_pairs.find { |pair| pair.include?("#{nested_attribute.split('.').last}=") } 
+        # Extract the target value
+        target_pair_value = target_pair.split('=').last
+        return target_pair_value unless target_pair_value.nil?
+      end
     end
+    "No #{nested_attribute} found for #{uniqname}"
 
-    'No department found'
   ensure
     get_ldap_response(ldap)
+  end
+  
+
+  def self.get_simple_name(uniqname)
+    get_user_attribute(uniqname, 'displayname')
   end
 
   def self.get_email(uniqname)
     get_user_attribute(uniqname, 'mail')
+  end
+
+  def self.get_dept(uniqname)
+    get_nested_attribute(uniqname, 'umichpostaladdressdata.addr1')
   end
 
   def self.is_member_of_group?(uid, group_name)
