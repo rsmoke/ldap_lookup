@@ -56,6 +56,7 @@ class Ldaptest
     puts "2: set new group_uid"
     puts "+++++++++++++++++++++++++"
     puts "3: get users full name"
+    puts "33: check if uid exists"
     puts "4: get users department"
     puts "5: get users email"
     puts "55: get all groups a user is a member of"
@@ -65,11 +66,14 @@ class Ldaptest
     puts "+++++++++++++++++++++++++"
     puts "8: what time is it?"
     puts "0: exit"
+    puts ""
+    print "Enter a number: "
 
     case gets.chomp.to_i
     when 1 then result_box(reset_uid)
     when 2 then result_box(reset_group_uid)
     when 3 then result_box(LdapLookup.get_simple_name(@uid))
+    when 33 then result_box(LdapLookup.uid_exist?(@uid))
     when 4 then result_box(LdapLookup.get_dept(@uid))
     when 5 then result_box(LdapLookup.get_email(@uid))
     when 55 then result_box(LdapLookup.all_groups_for_user(@uid))
@@ -80,7 +84,7 @@ class Ldaptest
 throw(:done)
     else
       print "\e[2J\e[f"
-      puts "====> Please type 1,2,3,4,5,55,6,7,8 or 0 only"
+      puts "====> Please type 1,2,3,33,4,5,55,6,7,8 or 0 only"
       2.times { puts " " }
     end
   end
