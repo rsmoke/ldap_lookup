@@ -24,5 +24,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "bundler", "~> 2.2.26"
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rspec", "~> 3.7.0"
-  spec.add_dependency 'net-ldap', '~> 0.17.0'
+  spec.add_dependency 'net-ldap', '~> 0.18.0'
 end
