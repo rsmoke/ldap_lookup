@@ -67,6 +67,24 @@ module LdapLookup
   end
   
 
+  # write a ruby method to check if a uid exist in LDAP
+  def self.uid_exist?(uniqname)
+    ldap = ldap_connection
+    search_param = uniqname
+
+    search_filter = Net::LDAP::Filter.eq('uid', search_param)
+
+    ldap.search(filter: search_filter) do |item|
+      return true if item['uid'].first == search_param
+    end
+
+    false
+  ensure
+    get_ldap_response(ldap)
+  end
+
+
+
   def self.get_simple_name(uniqname)
     get_user_attribute(uniqname, 'displayname')
   end
