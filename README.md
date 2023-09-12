@@ -63,6 +63,10 @@ end
 
 ### Methods available
 
+__uid_exist?:__ returns true if uid is in LDAP
+```
+LdapLookup.uid_exist?(uniqname)
+```
 __get_simple_name:__ returns the Display Name
 ```
 LdapLookup.get_simple_name(uniqname = nil)
