@@ -20,7 +20,7 @@ LdapLookup.configuration do |config|
   # config.bind_dn = 'cn=service-account,ou=Service Accounts,dc=umich,dc=edu'
   # (If bind_dn is not set, it defaults to: uid=username,ou=People,base)
   
-  # Encryption - REQUIRED (as of Jan 28, 2026)
+  # Encryption - REQUIRED (as of Jan 20, 2026)
   # Use :start_tls for port 389 or :simple_tls for LDAPS on port 636
   encryption_method = ENV.fetch('LDAP_ENCRYPTION', 'start_tls').to_sym
   config.encryption = encryption_method

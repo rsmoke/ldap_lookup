@@ -40,17 +40,19 @@ module LdapLookup
       }
     end
 
-    # Configure authentication
+    # Configure authenticated bind (required as of Jan 20, 2026)
+    # Note: "simple" bind method = authenticated bind with username/password (not anonymous)
+    # This is the standard LDAP authenticated bind method
     if username && password
       # Use custom bind_dn if provided (for service accounts), otherwise build standard DN
       auth_bind_dn = bind_dn || "uid=#{username},ou=People,#{base}"
       connection_params[:auth] = {
-        method: :simple,
+        method: :simple,  # Simple bind = authenticated bind with username/password
         username: auth_bind_dn,
         password: password
       }
     else
-      raise "LDAP authentication required: username and password must be configured"
+      raise "LDAP authentication required: username and password must be configured. Anonymous binds are no longer supported."
     end
 
     Net::LDAP.new(connection_params)

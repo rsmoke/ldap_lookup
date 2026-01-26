@@ -1,7 +1,7 @@
 # LdapLookup for Ruby [![Gem Version](https://badge.fury.io/rb/ldap_lookup.svg)](https://badge.fury.io/rb/ldap_lookup)
 
 ### Description
-This module is to be used for authenticated lookup of user attributes in the MCommunity service provided at the University of Michigan. It requires authenticated LDAP binds with encryption as per UM IT Security requirements (effective Jan 28, 2026). It can be easily modified to use other LDAP server configurations.
+This module is to be used for authenticated lookup of user attributes in the MCommunity service provided at the University of Michigan. It requires authenticated LDAP binds with encryption as per UM IT Security requirements (effective Jan 20, 2026). It can be easily modified to use other LDAP server configurations.
 
 ---
 
@@ -28,9 +28,11 @@ LdapLookup.configuration do |config|
 end
 </pre>
 
-**Important:** As of January 28, 2026, UM LDAP requires:
-- Authenticated binds (username and password are required)
-- Encrypted connections (STARTTLS or LDAPS)
+**Important:** As of January 20, 2026, UM LDAP requires:
+- **Authenticated binds only** - Anonymous (unauthenticated) binds are no longer supported
+- Username and password are required for all LDAP connections
+- Encrypted connections (STARTTLS or LDAPS) are mandatory
+- The gem uses LDAP "simple bind" authentication (authenticated with username/password)
 
 3. run the ldaptest.rb script
 ```ruby
