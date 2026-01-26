@@ -41,39 +41,102 @@ ruby ./ldaptest.rb
 
 ### Installation
 
+#### Step 1: Add to Gemfile
+
 Add this line to your application's Gemfile:
 
 ```ruby
 gem 'ldap_lookup'
 ```
 
-And then execute:
+Then run:
 
-    $ bundle
+```bash
+bundle install
+```
 
-Or install it yourself as:
+#### Step 2: Get LDAP Credentials
 
-    $ gem install ldap_lookup
+**For Production Applications (Recommended):**
+Request a **service account** from your IT department. Service accounts are designed for automated applications and don't require password changes.
 
-In your application create a file config/initializers/ldap_lookup.rb
-<pre>
+**For Development/Testing:**
+You can use your personal UM uniqname and password temporarily, but switch to a service account for production.
+
+#### Step 3: Configure the Gem
+
+**For Rails Applications:**
+
+Create `config/initializers/ldap_lookup.rb`:
+
+```ruby
 LdapLookup.configuration do |config|
-    config.host = <em>< your host ></em> # "ldap.umich.edu"
-    config.port = <em>< your port ></em> # "389" (default) for STARTTLS, "636" for LDAPS
-    config.base = <em>< your LDAP base ></em> # "dc=umich,dc=edu"
-    config.username = <em>< your uniqname ></em> # Your UM uniqname
-    config.password = <em>< your password ></em> # Your UM password (consider using ENV vars)
-    config.encryption = :start_tls  # :start_tls (default) or :simple_tls for LDAPS
-    config.dept_attribute = <em>< your dept attribute ></em> # "umichPostalAddressData"
-    config.group_attribute = <em>< your group email attribute ></em> # "umichGroupEmail"
+  # Server Configuration (defaults work for UM LDAP)
+  config.host = ENV.fetch('LDAP_HOST', 'ldap.umich.edu')
+  config.port = ENV.fetch('LDAP_PORT', '389')
+  config.base = ENV.fetch('LDAP_BASE', 'dc=umich,dc=edu')
+  
+  # Authentication - REQUIRED
+  config.username = ENV.fetch('LDAP_USERNAME')
+  config.password = ENV.fetch('LDAP_PASSWORD')
+  
+  # If using a service account with custom bind DN, uncomment and set:
+  # config.bind_dn = 'cn=service-account,ou=Service Accounts,dc=umich,dc=edu'
+  
+  # Encryption - REQUIRED (defaults to STARTTLS)
+  config.encryption = ENV.fetch('LDAP_ENCRYPTION', 'start_tls').to_sym
+  # Use :simple_tls for LDAPS on port 636
+  
+  # Optional: Attribute Configuration
+  config.dept_attribute = ENV.fetch('LDAP_DEPT_ATTRIBUTE', 'umichPostalAddressData')
+  config.group_attribute = ENV.fetch('LDAP_GROUP_ATTRIBUTE', 'umichGroupEmail')
 end
-</pre>
+```
 
-**Security Note:** For production applications, store credentials in environment variables:
-<pre>
-config.username = ENV['LDAP_USERNAME']
-config.password = ENV['LDAP_PASSWORD']
-</pre>
+**For Non-Rails Applications:**
+
+Configure in your application startup:
+
+```ruby
+require 'ldap_lookup'
+
+LdapLookup.configuration do |config|
+  config.host = 'ldap.umich.edu'
+  config.base = 'dc=umich,dc=edu'
+  config.username = ENV['LDAP_USERNAME']
+  config.password = ENV['LDAP_PASSWORD']
+  config.encryption = :start_tls
+end
+```
+
+#### Step 4: Set Environment Variables
+
+**Never hardcode credentials in your code!** Use environment variables:
+
+```bash
+# In your .env file (for development)
+LDAP_USERNAME=your_service_account_uniqname
+LDAP_PASSWORD=your_service_account_password
+
+# Or export in your shell
+export LDAP_USERNAME=your_service_account_uniqname
+export LDAP_PASSWORD=your_service_account_password
+```
+
+**For Production:**
+- Use your platform's secrets management (Rails credentials, AWS Secrets Manager, etc.)
+- Never commit credentials to version control
+- Use service accounts, not personal accounts
+
+#### Service Account Bind DN
+
+If your service account uses a non-standard bind DN format, you can specify it:
+
+```ruby
+config.bind_dn = 'cn=my-service-account,ou=Service Accounts,dc=umich,dc=edu'
+```
+
+If `bind_dn` is not set, it defaults to: `uid=username,ou=People,base`
 
 ---
 
@@ -113,6 +176,32 @@ __all_groups_for_user:__ Returns the list of groups that a user is a member of.
 ```
 LdapLookup.all_groups_for_user(uniqname = nil)
 response: result_array
+```
+
+### Running Tests
+
+**Security Note:** Never put passwords in command line arguments. They are visible in process lists and shell history.
+
+**Recommended: Use a .env file (most secure)**
+1. Copy the example file: `cp .env.example .env`
+2. Edit `.env` with your credentials:
+   ```
+   LDAP_USERNAME=your_uniqname
+   LDAP_PASSWORD=your_password
+   ```
+3. Run tests: `bundle exec rspec`
+
+**Alternative: Export environment variables**
+```bash
+export LDAP_USERNAME=your_uniqname
+export LDAP_PASSWORD=your_password
+bundle exec rspec
+```
+
+**Never do this (insecure):**
+```bash
+# ❌ DON'T: Password visible in process list
+LDAP_PASSWORD=xxx bundle exec rspec
 ```
 
 ### Contributing

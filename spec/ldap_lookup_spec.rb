@@ -178,9 +178,24 @@ RSpec.describe LdapLookup do
         expect { LdapLookup.ldap_connection }.not_to raise_error
       end
 
-      it 'uses the correct bind DN format' do
+      it 'uses the correct default bind DN format for user accounts' do
         LdapLookup.configuration do |config|
           config.username = 'testuser'
+          config.base = 'dc=umich,dc=edu'
+          config.password = 'testpass'
+        end
+        
+        connection = LdapLookup.ldap_connection
+        expect(connection).to be_a(Net::LDAP)
+      end
+
+      it 'uses custom bind_dn when provided (for service accounts)' do
+        custom_bind_dn = 'cn=service-account,ou=Service Accounts,dc=umich,dc=edu'
+        
+        LdapLookup.configuration do |config|
+          config.username = 'serviceuser'
+          config.password = 'testpass'
+          config.bind_dn = custom_bind_dn
           config.base = 'dc=umich,dc=edu'
         end
         

@@ -12,6 +12,7 @@ module LdapLookup
   define_setting :group_attribute
   define_setting :username
   define_setting :password
+  define_setting :bind_dn  # Optional: custom bind DN (for service accounts). If not set, uses uid=username,ou=People,base
   define_setting :encryption, :start_tls  # :start_tls or :simple_tls (LDAPS)
 
   def self.get_ldap_response(ldap)
@@ -41,11 +42,11 @@ module LdapLookup
 
     # Configure authentication
     if username && password
-      # Build bind DN in format: uid=username,ou=People,dc=umich,dc=edu
-      bind_dn = "uid=#{username},ou=People,#{base}"
+      # Use custom bind_dn if provided (for service accounts), otherwise build standard DN
+      auth_bind_dn = bind_dn || "uid=#{username},ou=People,#{base}"
       connection_params[:auth] = {
         method: :simple,
-        username: bind_dn,
+        username: auth_bind_dn,
         password: password
       }
     else

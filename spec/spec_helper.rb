@@ -1,4 +1,5 @@
 require 'bundler/setup'
+require 'dotenv/load'  # Loads .env file if it exists
 require 'ldap_lookup'
 
 RSpec.configure do |config|
@@ -13,24 +14,41 @@ RSpec.configure do |config|
   end
 
   # Configure LDAP settings for tests
-  # Credentials should be provided via environment variables for security
-  # Example: LDAP_USERNAME=your_uniqname LDAP_PASSWORD=your_password bundle exec rspec
+  # Credentials should be provided via .env file (see .env.example) or environment variables
+  # NEVER commit your .env file or put passwords in command line arguments
   config.before(:suite) do
     username = ENV['LDAP_USERNAME']
     password = ENV['LDAP_PASSWORD']
     
     if username.nil? || password.nil?
-      warn "WARNING: LDAP_USERNAME and LDAP_PASSWORD environment variables not set."
-      warn "Tests will use default values which may not work for authenticated LDAP connections."
-      warn "Set them with: export LDAP_USERNAME=your_uniqname && export LDAP_PASSWORD=your_password"
+      warn "\n" + "="*70
+      warn "WARNING: LDAP_USERNAME and LDAP_PASSWORD not set."
+      warn "Tests require authenticated LDAP credentials."
+      warn ""
+      warn "SECURE OPTIONS:"
+      warn "  1. Create a .env file (recommended):"
+      warn "     cp .env.example .env"
+      warn "     # Then edit .env with your credentials"
+      warn ""
+      warn "  2. Set in your shell (export, not inline):"
+      warn "     export LDAP_USERNAME=your_uniqname"
+      warn "     export LDAP_PASSWORD=your_password"
+      warn "     bundle exec rspec"
+      warn ""
+      warn "NEVER use: LDAP_PASSWORD=xxx bundle exec rspec (visible in process list!)"
+      warn "="*70 + "\n"
+      
+      # Use defaults that will fail gracefully
+      username ||= "test_user"
+      password ||= "test_password"
     end
 
     LdapLookup.configuration do |config|
       config.host = ENV['LDAP_HOST'] || "ldap.umich.edu"
       config.port = ENV['LDAP_PORT'] || "389"
       config.base = ENV['LDAP_BASE'] || "dc=umich,dc=edu"
-      config.username = username || "rsmoke"
-      config.password = password || "test_password"
+      config.username = username
+      config.password = password
       config.encryption = (ENV['LDAP_ENCRYPTION'] || "start_tls").to_sym
       config.dept_attribute = "umichPostalAddressData"
       config.group_attribute = "umichGroupEmail"
