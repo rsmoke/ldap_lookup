@@ -66,30 +66,37 @@ end
 __uid_exist?:__ returns true if uid is in LDAP
 ```
 LdapLookup.uid_exist?(uniqname)
+response: true or false (boolean)
 ```
 __get_simple_name:__ returns the Display Name
 ```
 LdapLookup.get_simple_name(uniqname = nil)
+response: name or "No #{attribute} found for #{uniqname}"
 ```
 __get_dept:__ returns the users Department_name
 ```
 LdapLookup.get_dept(uniqname = nil)
+response: dept name or "No #{nested_attribute} found for #{uniqname}"
 ```
 __get_email:__ returns the users email address
 ```
 LdapLookup.get_email(uniqname = nil)
+response: email or "No #{attribute} found for #{uniqname}"
 ```
 __is_member_of_group?:__ returns true/false if uniqname is a member of the specified group
 ```
 LdapLookup.is_member_of_group?(uid = nil, group_name = nil)
+response: true or false (boolean)
 ```
 __get_email_distribution_list:__ Returns the list of emails that are associated to a group.
 ```
 LdapLookup.get_email_distribution_list(group_name = nil)
+response: result_hash
 ```
 __all_groups_for_user:__ Returns the list of groups that a user is a member of.
 ```
 LdapLookup.all_groups_for_user(uniqname = nil)
+response: result_array
 ```
 
 ### Contributing
