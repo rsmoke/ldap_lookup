@@ -24,7 +24,7 @@ module LdapLookup
     )
   end
 
-  def self.get_user_attribute(uniqname, attribute)
+  def self.get_user_attribute(uniqname, attribute, default_value = nil)
     ldap = ldap_connection
     search_param = uniqname
     result_attrs = [attribute]
@@ -36,7 +36,7 @@ module LdapLookup
       return value unless value.nil?
     end
 
-    "No #{attribute} found for #{uniqname}"
+    default_value
   ensure
     get_ldap_response(ldap)
   end
@@ -45,22 +45,28 @@ module LdapLookup
     ldap = ldap_connection
     search_param = uniqname
     # Specify the full nested attribute path using dot notation
-    result_attrs = [nested_attribute.split('.').first]
+    attr_name = nested_attribute.split('.').first
+    # Try using the configured attribute name if available, otherwise use the provided name
+    search_attr = dept_attribute || attr_name
+    result_attrs = [search_attr]
   
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
   
     ldap.search(filter: search_filter, attributes: result_attrs) do |item|
-      # Split the string into key-value pairs
-      if string1 = item[nested_attribute.split('.').first]&.first
+      # Net::LDAP::Entry provides case-insensitive access, try the search attribute first
+      string1 = item[search_attr]&.first || item[attr_name]&.first
+      if string1
         key_value_pairs = string1.split('}:{')
-        # Find the key-value pair for addr1
+        # Find the key-value pair for the nested attribute
         target_pair = key_value_pairs.find { |pair| pair.include?("#{nested_attribute.split('.').last}=") } 
         # Extract the target value
-        target_pair_value = target_pair.split('=').last
-        return target_pair_value unless target_pair_value.nil?
+        if target_pair
+          target_pair_value = target_pair.split('=').last
+          return target_pair_value unless target_pair_value.nil?
+        end
       end
     end
-    "No #{nested_attribute} found for #{uniqname}"
+    nil
 
   ensure
     get_ldap_response(ldap)
@@ -83,11 +89,11 @@ module LdapLookup
   end
 
   def self.get_simple_name(uniqname)
-    get_user_attribute(uniqname, 'displayname')
+    get_user_attribute(uniqname, 'displayname', 'not available')
   end
 
   def self.get_email(uniqname)
-    get_user_attribute(uniqname, 'mail')
+    get_user_attribute(uniqname, 'mail', nil)
   end
 
   def self.get_dept(uniqname)
@@ -104,12 +110,15 @@ module LdapLookup
       Net::LDAP::Filter.eq('objectClass', 'group')
     )
 
+    found = false
     ldap.search(filter: search_filter, attributes: result_attrs) do |item|
       members = item['member']
-      return true if members&.any? { |entry| entry.split(',').first.split('=')[1] == uid }
+      if members && members.any? { |entry| entry.split(',').first.split('=')[1] == uid }
+        found = true
+      end
     end
 
-    false
+    found
   ensure
     get_ldap_response(ldap)
   end
