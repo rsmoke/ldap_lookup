@@ -1,5 +1,6 @@
 require_relative 'helpers/configuration'
 require 'net/ldap'
+require 'openssl'
 
 module LdapLookup
   extend Configuration
@@ -9,6 +10,9 @@ module LdapLookup
   define_setting :base
   define_setting :dept_attribute
   define_setting :group_attribute
+  define_setting :username
+  define_setting :password
+  define_setting :encryption, :start_tls  # :start_tls or :simple_tls (LDAPS)
 
   def self.get_ldap_response(ldap)
     response = ldap.get_operation_result
@@ -16,12 +20,39 @@ module LdapLookup
   end
 
   def self.ldap_connection
-    Net::LDAP.new(
+    connection_params = {
       host: host,
-      port: port,
-      base: base,
-      auth: { method: :anonymous }
-    )
+      port: port.to_i,
+      base: base
+    }
+
+    # Configure encryption
+    if encryption == :start_tls
+      connection_params[:encryption] = {
+        method: :start_tls,
+        tls_options: { verify_mode: OpenSSL::SSL::VERIFY_PEER }
+      }
+    elsif encryption == :simple_tls
+      connection_params[:encryption] = {
+        method: :simple_tls,
+        tls_options: { verify_mode: OpenSSL::SSL::VERIFY_PEER }
+      }
+    end
+
+    # Configure authentication
+    if username && password
+      # Build bind DN in format: uid=username,ou=People,dc=umich,dc=edu
+      bind_dn = "uid=#{username},ou=People,#{base}"
+      connection_params[:auth] = {
+        method: :simple,
+        username: bind_dn,
+        password: password
+      }
+    else
+      raise "LDAP authentication required: username and password must be configured"
+    end
+
+    Net::LDAP.new(connection_params)
   end
 
   def self.get_user_attribute(uniqname, attribute, default_value = nil)

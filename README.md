@@ -1,7 +1,7 @@
 # LdapLookup for Ruby [![Gem Version](https://badge.fury.io/rb/ldap_lookup.svg)](https://badge.fury.io/rb/ldap_lookup)
 
 ### Description
-This module is to be used for anonymous lookup of user attributes in the MCommunity service provide at the University of Michigan. It can be easily modifed to use other LDAP server configurations.
+This module is to be used for authenticated lookup of user attributes in the MCommunity service provided at the University of Michigan. It requires authenticated LDAP binds with encryption as per UM IT Security requirements (effective Jan 28, 2026). It can be easily modified to use other LDAP server configurations.
 
 ---
 
@@ -18,12 +18,19 @@ To try the module out:
 <pre>
 LdapLookup.configuration do |config|
       config.host = <em>< your host ></em> # "ldap.umich.edu"
-      config.port = <em>< your port ></em> # "986" the default is set to "389" so this optional
+      config.port = <em>< your port ></em> # "389" (default) for STARTTLS, "636" for LDAPS
       config.base = <em>< your LDAP base ></em> # "dc=umich,dc=edu"
+      config.username = <em>< your uniqname ></em> # Your UM uniqname (e.g., "rsmoke")
+      config.password = <em>< your password ></em> # Your UM password
+      config.encryption = :start_tls  # :start_tls (default, port 389) or :simple_tls (LDAPS, port 636)
       config.dept_attribute = <em>< your dept attribute ></em> # "umichPostalAddressData"
       config.group_attribute = <em>< your group email attribute ></em> # "umichGroupEmail"
 end
 </pre>
+
+**Important:** As of January 28, 2026, UM LDAP requires:
+- Authenticated binds (username and password are required)
+- Encrypted connections (STARTTLS or LDAPS)
 
 3. run the ldaptest.rb script
 ```ruby
@@ -52,11 +59,20 @@ In your application create a file config/initializers/ldap_lookup.rb
 <pre>
 LdapLookup.configuration do |config|
     config.host = <em>< your host ></em> # "ldap.umich.edu"
-    config.port = <em>< your port ></em> # "954" port 389 is set by default
+    config.port = <em>< your port ></em> # "389" (default) for STARTTLS, "636" for LDAPS
     config.base = <em>< your LDAP base ></em> # "dc=umich,dc=edu"
+    config.username = <em>< your uniqname ></em> # Your UM uniqname
+    config.password = <em>< your password ></em> # Your UM password (consider using ENV vars)
+    config.encryption = :start_tls  # :start_tls (default) or :simple_tls for LDAPS
     config.dept_attribute = <em>< your dept attribute ></em> # "umichPostalAddressData"
     config.group_attribute = <em>< your group email attribute ></em> # "umichGroupEmail"
 end
+</pre>
+
+**Security Note:** For production applications, store credentials in environment variables:
+<pre>
+config.username = ENV['LDAP_USERNAME']
+config.password = ENV['LDAP_PASSWORD']
 </pre>
 
 ---
