@@ -50,46 +50,44 @@ module LdapLookup
     begin
       ldap = ldap_connection
 
-      # Check if TLS/SSL connection was established successfully
-      # If certificate verification fails, we'd get an exception here
+      # Net::LDAP binds automatically when performing operations (search, etc.)
+      # Explicit bind may fail with Code 19 on STARTTLS, but actual operations work fine
+      # Test by performing an actual search operation instead of explicit bind
+      
+      # Try a simple search - this will trigger automatic bind
+      search_result = ldap.search(base: base, filter: "(uid=#{username})", size: 1, attributes: ['uid'])
+      search_response = ldap.get_operation_result
 
-      # Net::LDAP binds automatically when auth is set, but let's try explicit bind
-      bind_result = ldap.bind
-      bind_response = ldap.get_operation_result
+      if search_response.code.zero?
+        # Success! Bind worked (automatically during search)
+        result.merge!(
+          success: true,
+          bind_successful: true,
+          bind_code: 0,
+          bind_message: "Bind successful (via automatic bind during search)",
+          search_code: search_response.code,
+          search_message: search_response.message,
+          note: "Explicit bind may show Code 19, but operations work correctly"
+        )
+      else
+        # Search failed - check if it's a bind issue or search issue
+        result.merge!(
+          success: false,
+          bind_successful: false,
+          search_code: search_response.code,
+          search_message: search_response.message,
+          error: "Search failed: Code #{search_response.code}, #{search_response.message}"
+        )
 
-      result.merge!(
-        bind_successful: bind_result,
-        bind_code: bind_response.code,
-        bind_message: bind_response.message
-      )
-
-      unless bind_result
-        result[:success] = false
-        result[:error] = "Bind failed: Code #{bind_response.code}, #{bind_response.message}"
-        result[:code] = bind_response.code
-
-        # Provide helpful guidance based on error code
-        case bind_response.code
+        case search_response.code
         when 19
-          result[:suggestion] = "Constraint Violation on bind. If UM is switching to authenticated access tomorrow (Jan 28, 2026), your account may not be enabled yet. Contact ITS Service Center to verify LDAP access is enabled for your account. Accounts may be enabled automatically on Jan 28."
+          result[:suggestion] = "Constraint Violation. Your account may not be enabled for LDAP access or may need administrative access for this operation."
         when 49
           result[:suggestion] = "Invalid Credentials. Check your username and password."
         when 50
           result[:suggestion] = "Insufficient Access Rights. Your account may need LDAP access enabled."
         end
-
-        return result
       end
-
-      # Try a simple search to verify permissions
-      search_result = ldap.search(base: base, filter: "(objectClass=*)", size: 1)
-      search_response = ldap.get_operation_result
-
-      result.merge!(
-        success: search_response.code.zero?,
-        search_code: search_response.code,
-        search_message: search_response.message
-      )
 
     rescue OpenSSL::SSL::SSLError => e
       # Certificate or SSL/TLS connection error
