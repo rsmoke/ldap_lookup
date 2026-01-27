@@ -172,17 +172,30 @@ module LdapLookup
     ldap = ldap_connection
     search_param = uniqname
     result_attrs = [attribute]
+    found_value = nil
 
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
 
     ldap.search(filter: search_filter, attributes: result_attrs) do |item|
       value = item[attribute]&.first
-      return value unless value.nil?
+      if value
+        found_value = value
+        break
+      end
     end
 
-    default_value
-  ensure
-    get_ldap_response(ldap)
+    # Check response - Code 19 may occur even when data is found
+    response = ldap.get_operation_result
+    if response.code == 19 && found_value.nil?
+      # Constraint violation and no data found - may need admin access
+      return default_value
+    elsif response.code != 0 && found_value.nil?
+      # Other error and no data found
+      raise "Response Code: #{response.code}, Message: #{response.message}"
+    end
+
+    # Return found value or default
+    found_value || default_value
   end
 
   def self.get_nested_attribute(uniqname, nested_attribute)
@@ -193,6 +206,7 @@ module LdapLookup
     # Try using the configured attribute name if available, otherwise use the provided name
     search_attr = dept_attribute || attr_name
     result_attrs = [search_attr]
+    found_value = nil
 
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
 
@@ -206,30 +220,53 @@ module LdapLookup
         # Extract the target value
         if target_pair
           target_pair_value = target_pair.split('=').last
-          return target_pair_value unless target_pair_value.nil?
+          if target_pair_value
+            found_value = target_pair_value
+            break
+          end
         end
       end
     end
-    nil
 
-  ensure
-    get_ldap_response(ldap)
+    # Check response - Code 19 may occur even when data is found
+    response = ldap.get_operation_result
+    if response.code == 19 && found_value.nil?
+      # Constraint violation and no data found - may need admin access
+      return nil
+    elsif response.code != 0 && found_value.nil?
+      # Other error and no data found
+      raise "Response Code: #{response.code}, Message: #{response.message}"
+    end
+
+    found_value
   end
 
   # method to check if a uid exist in LDAP
   def self.uid_exist?(uniqname)
     ldap = ldap_connection
     search_param = uniqname
+    found = false
 
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
 
     ldap.search(filter: search_filter) do |item|
-      return true if item['uid'].first == search_param
+      if item['uid'].first == search_param
+        found = true
+        break
+      end
     end
 
-    false
-  ensure
-    get_ldap_response(ldap)
+    # Check response - Code 19 may occur even when user is found
+    response = ldap.get_operation_result
+    if response.code == 19 && !found
+      # Constraint violation and user not found - may need admin access
+      return false
+    elsif response.code != 0 && !found
+      # Other error and user not found
+      raise "Response Code: #{response.code}, Message: #{response.message}"
+    end
+
+    found
   end
 
   def self.get_simple_name(uniqname)
@@ -248,28 +285,39 @@ module LdapLookup
     ldap = ldap_connection
     search_param = group_name
     result_attrs = ['member']
+    found = false
 
     search_filter = Net::LDAP::Filter.join(
       Net::LDAP::Filter.eq('cn', search_param),
       Net::LDAP::Filter.eq('objectClass', 'group')
     )
 
-    found = false
     ldap.search(filter: search_filter, attributes: result_attrs) do |item|
       members = item['member']
       if members && members.any? { |entry| entry.split(',').first.split('=')[1] == uid }
         found = true
+        break
       end
     end
 
+    # Check response - Code 19 may occur for group operations (requires admin access)
+    response = ldap.get_operation_result
+    if response.code == 19
+      # Constraint violation - group operations may require admin access
+      # Return false if not found, true if found (even with Code 19)
+      return found
+    elsif response.code != 0 && !found
+      # Other error and not found
+      raise "Response Code: #{response.code}, Message: #{response.message}"
+    end
+
     found
-  ensure
-    get_ldap_response(ldap)
   end
 
   def self.get_email_distribution_list(group_name)
     ldap = ldap_connection
     result_hash = {}
+    found_data = false
 
     search_param = group_name
     result_attrs = %w[cn umichGroupEmail member]
@@ -280,15 +328,24 @@ module LdapLookup
     )
 
     ldap.search(filter: search_filter, attributes: result_attrs) do |item|
+      found_data = true
       result_hash['group_name'] = item['cn']&.first
       result_hash['group_email'] = item['umichGroupEmail']&.first
       members = item['member']&.map { |individual| individual.split(',').first.split('=')[1] }
       result_hash['members'] = members&.sort || []
     end
 
+    # Check response - Code 19 may occur for group operations (requires admin access)
+    response = ldap.get_operation_result
+    if response.code == 19 && !found_data
+      # Constraint violation and no data found - group operations may require admin access
+      return {}
+    elsif response.code != 0 && !found_data
+      # Other error and no data found
+      raise "Response Code: #{response.code}, Message: #{response.message}"
+    end
+
     result_hash
-  ensure
-    get_ldap_response(ldap)
   end
 
   def self.all_groups_for_user(uid)
