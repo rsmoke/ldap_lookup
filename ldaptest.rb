@@ -24,6 +24,9 @@ class Ldaptest
     config.encryption = encryption_str.to_sym
     config.dept_attribute = "umichPostalAddressData"
     config.group_attribute = "umichGroupEmail"
+    # Enable LDAP debug logging in this test runner
+    debug_str = ENV['LDAP_DEBUG']
+    config.debug = debug_str ? debug_str.to_s.downcase == 'true' : true
   end
   #######################################################
 

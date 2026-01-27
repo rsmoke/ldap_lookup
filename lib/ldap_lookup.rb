@@ -14,6 +14,37 @@ module LdapLookup
   define_setting :password
   define_setting :bind_dn  # Optional: custom bind DN (for service accounts). If not set, uses uid=username,ou=People,base
   define_setting :encryption, :start_tls  # :start_tls or :simple_tls (LDAPS)
+  define_setting :debug, false
+
+  def self.debug_log(message)
+    return unless debug
+
+    puts "[LDAP DEBUG] #{message}"
+  end
+
+  def self.perform_search(ldap, base: nil, filter:, attributes: nil, label: nil, options: {})
+    search_base = base || ldap.base
+    filter_str = filter.respond_to?(:to_s) ? filter.to_s : filter.inspect
+    attrs_list = attributes ? Array(attributes).map(&:to_s) : ['*']
+    label_prefix = label ? "#{label} " : ""
+
+    debug_log("#{label_prefix}search base=#{search_base} filter=#{filter_str} attrs=#{attrs_list.join(',')}")
+
+    params = { base: search_base, filter: filter }
+    params[:attributes] = attributes if attributes
+    params.merge!(options) if options && !options.empty?
+
+    results = ldap.search(params) || []
+    entry_count = results ? results.size : 0
+    returned_attrs = []
+    if results && !results.empty?
+      returned_attrs = results.first.attribute_names.map(&:to_s).sort
+    end
+
+    debug_log("#{label_prefix}search results count=#{entry_count} returned_attrs=#{returned_attrs.join(',')}")
+
+    results
+  end
 
   def self.operation_details(response)
     details = {
@@ -64,6 +95,8 @@ module LdapLookup
   # Diagnostic method to test LDAP connection and bind
   def self.test_connection
     auth_dn = bind_dn || "uid=#{username},ou=People,#{base}"
+    search_base = "ou=People,#{base}"
+    search_filter = "(uid=#{username})"
 
     result = {
       bind_dn: auth_dn,
@@ -94,7 +127,14 @@ module LdapLookup
       # Test by performing an actual search operation instead of explicit bind
       
       # Try a simple search - this will trigger automatic bind
-      search_result = ldap.search(base: base, filter: "(uid=#{username})", size: 1, attributes: ['uid', 'mail', 'displayName', 'cn', 'givenName', 'sn'])
+      search_result = perform_search(
+        ldap,
+        base: search_base,
+        filter: search_filter,
+        attributes: ['uid', 'mail', 'displayName', 'cn', 'givenName', 'sn'],
+        label: "diagnostic",
+        options: { size: 1 }
+      )
       search_response = ldap.get_operation_result
       returned_attributes = []
       if search_result && !search_result.empty?
@@ -116,6 +156,8 @@ module LdapLookup
           search_code: search_response.code,
           search_message: search_response.message,
           search_details: operation_details(search_response),
+          search_base: search_base,
+          search_filter: search_filter,
           search_entry_count: search_result ? search_result.size : 0,
           search_returned_attributes: returned_attributes,
           note: "Explicit bind may show Code 19, but operations work correctly"
@@ -132,6 +174,8 @@ module LdapLookup
           search_code: search_response.code,
           search_message: search_response.message,
           search_details: operation_details(search_response),
+          search_base: search_base,
+          search_filter: search_filter,
           search_entry_count: search_result ? search_result.size : 0,
           search_returned_attributes: returned_attributes,
           error: "Search failed: Code #{search_response.code}, #{search_response.message}"
@@ -234,7 +278,7 @@ module LdapLookup
 
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
 
-    ldap.search(filter: search_filter, attributes: result_attrs) do |item|
+    perform_search(ldap, filter: search_filter, attributes: result_attrs, label: "get_user_attribute").each do |item|
       value = item[attribute]&.first
       if value
         found_value = value
@@ -268,7 +312,7 @@ module LdapLookup
 
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
 
-    ldap.search(filter: search_filter, attributes: result_attrs) do |item|
+    perform_search(ldap, filter: search_filter, attributes: result_attrs, label: "get_nested_attribute").each do |item|
       # Net::LDAP::Entry provides case-insensitive access, try the search attribute first
       string1 = item[search_attr]&.first || item[attr_name]&.first
       if string1
@@ -307,7 +351,7 @@ module LdapLookup
 
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
 
-    ldap.search(filter: search_filter) do |item|
+    perform_search(ldap, filter: search_filter, label: "uid_exist").each do |item|
       if item['uid'].first == search_param
         found = true
         break
@@ -350,7 +394,7 @@ module LdapLookup
       Net::LDAP::Filter.eq('objectClass', 'group')
     )
 
-    ldap.search(filter: search_filter, attributes: result_attrs) do |item|
+    perform_search(ldap, filter: search_filter, attributes: result_attrs, label: "is_member_of_group").each do |item|
       members = item['member']
       if members && members.any? { |entry| entry.split(',').first.split('=')[1] == uid }
         found = true
@@ -385,7 +429,7 @@ module LdapLookup
       Net::LDAP::Filter.eq('objectClass', 'group')
     )
 
-    ldap.search(filter: search_filter, attributes: result_attrs) do |item|
+    perform_search(ldap, filter: search_filter, attributes: result_attrs, label: "get_email_distribution_list").each do |item|
       found_data = true
       result_hash['group_name'] = item['cn']&.first
       result_hash['group_email'] = item['umichGroupEmail']&.first
@@ -414,7 +458,7 @@ module LdapLookup
 
     # Use configured base instead of hardcoded dc=umich,dc=edu
     member_dn = "uid=#{uid},ou=People,#{base}"
-    ldap.search(filter: "member=#{member_dn}", attributes: result_attrs) do |item|
+    perform_search(ldap, filter: "member=#{member_dn}", attributes: result_attrs, label: "all_groups_for_user").each do |item|
       item.each { |key, value| result_array << value.first.split('=')[1].split(',')[0] }
     end
 
