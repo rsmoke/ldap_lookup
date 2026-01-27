@@ -21,17 +21,23 @@ To try the module out:
    source .env
    set +a
    ```
-4. Edit the configurations by opening ldaptest.rb and set the *CONFIGURATION BLOCK* to your environment.
+4. Edit the configurations by opening ldaptest.rb and set the *CONFIGURATION BLOCK* to your environment (it reads from the `.env` values you just loaded).
 <pre>
 LdapLookup.configuration do |config|
-      config.host = <em>< your host ></em> # "ldap.umich.edu"
-      config.port = <em>< your port ></em> # "389" (default) for STARTTLS, "636" for LDAPS
-      config.base = <em>< your LDAP base ></em> # "dc=umich,dc=edu"
-      config.username = <em>< your uniqname ></em> # Your UM uniqname (e.g., "rsmoke")
-      config.password = <em>< your password ></em> # Your UM password
-      config.encryption = :start_tls  # :start_tls (default, port 389) or :simple_tls (LDAPS, port 636)
-      config.dept_attribute = <em>< your dept attribute ></em> # "umichPostalAddressData"
-      config.group_attribute = <em>< your group email attribute ></em> # "umichGroupEmail"
+      config.host = ENV['LDAP_HOST'] || "ldap.umich.edu"
+      config.port = ENV['LDAP_PORT'] || "389"
+      config.base = ENV['LDAP_BASE'] || "dc=umich,dc=edu"
+      # Leave username/password unset for anonymous binds
+      config.username = ENV['LDAP_USERNAME']
+      config.password = ENV['LDAP_PASSWORD']
+      # Read encryption from ENV, default to start_tls
+      encryption_str = ENV['LDAP_ENCRYPTION'] || 'start_tls'
+      config.encryption = encryption_str.to_sym
+      config.dept_attribute = ENV['LDAP_DEPT_ATTRIBUTE'] || "umichPostalAddressData"
+      config.group_attribute = ENV['LDAP_GROUP_ATTRIBUTE'] || "umichGroupEmail"
+      # Enable LDAP debug logging in this test runner
+      debug_str = ENV['LDAP_DEBUG']
+      config.debug = debug_str ? debug_str.to_s.downcase == 'true' : true
 end
 </pre>
 
