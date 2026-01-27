@@ -91,6 +91,8 @@ LdapLookup.configuration do |config|
   # Encryption - REQUIRED (defaults to STARTTLS)
   config.encryption = ENV.fetch('LDAP_ENCRYPTION', 'start_tls').to_sym
   # Use :simple_tls for LDAPS on port 636
+  # TLS verification (defaults to true). Set LDAP_TLS_VERIFY=false only for local testing.
+  # Optional custom CA bundle: set LDAP_CA_CERT=/path/to/ca-bundle.pem
   
   # Optional: Attribute Configuration
   config.dept_attribute = ENV.fetch('LDAP_DEPT_ATTRIBUTE', 'umichPostalAddressData')
@@ -128,7 +130,7 @@ export LDAP_USERNAME=your_service_account_uniqname
 export LDAP_PASSWORD=your_service_account_password
 
 # You can also set these (all can be changed without redeploying):
-# LDAP_HOST, LDAP_PORT, LDAP_BASE, LDAP_ENCRYPTION
+# LDAP_HOST, LDAP_PORT, LDAP_BASE, LDAP_ENCRYPTION, LDAP_TLS_VERIFY, LDAP_CA_CERT
 ```
 
 **For Production:**

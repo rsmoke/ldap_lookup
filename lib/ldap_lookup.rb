@@ -150,7 +150,7 @@ module LdapLookup
         returned_attributes = entry.attribute_names.map(&:to_s).sort
       end
 
-      if search_response.code.zero?
+      if search_response.code.zero? || (search_response.code == 4 && (search_result && !search_result.empty?))
         # Success! Bind worked (automatically during search)
         result.merge!(
           success: true,
@@ -196,6 +196,8 @@ module LdapLookup
           result[:suggestion] = "Invalid Credentials. Check your username and password."
         when 50
           result[:suggestion] = "Insufficient Access Rights. Your account may need LDAP access enabled."
+        when 4
+          result[:suggestion] = "Size Limit Exceeded. Try a more specific search base or ensure filters are indexed."
         end
       end
 
@@ -228,22 +230,22 @@ module LdapLookup
     # Configure encryption - REQUIRED for authenticated binds per UM documentation
     # UM requires secure connection: TLS on port 389 (STARTTLS) or SSL on port 636 (LDAPS)
     # Most operating systems already trust InCommon certificates per UM documentation
+    tls_verify = ENV.fetch('LDAP_TLS_VERIFY', 'true').to_s.downcase != 'false'
+    tls_options = {
+      verify_mode: tls_verify ? OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
+    }
+    ca_cert_path = ENV['LDAP_CA_CERT']
+    tls_options[:ca_file] = ca_cert_path if ca_cert_path && !ca_cert_path.to_s.strip.empty?
+
     if encryption == :start_tls
       connection_params[:encryption] = {
         method: :start_tls,
-        tls_options: {
-          verify_mode: OpenSSL::SSL::VERIFY_PEER
-          # System CA certificates should include InCommon certificates
-          # If certificate verification fails, check your system's CA certificate store
-        }
+        tls_options: tls_options
       }
     elsif encryption == :simple_tls
       connection_params[:encryption] = {
         method: :simple_tls,
-        tls_options: {
-          verify_mode: OpenSSL::SSL::VERIFY_PEER
-          # System CA certificates should include InCommon certificates
-        }
+        tls_options: tls_options
       }
     end
 
@@ -285,7 +287,13 @@ module LdapLookup
 
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
 
-    perform_search(ldap, filter: search_filter, attributes: result_attrs, label: "get_user_attribute").each do |item|
+    perform_search(
+      ldap,
+      filter: search_filter,
+      attributes: result_attrs,
+      label: "get_user_attribute",
+      options: { size: 1 }
+    ).each do |item|
       value = item[attribute]&.first
       if value
         found_value = value
@@ -295,7 +303,7 @@ module LdapLookup
 
     # Check response - Code 19 may occur even when data is found
     response = ldap.get_operation_result
-    if response.code == 19 && found_value.nil?
+    if (response.code == 19 || response.code == 4) && found_value.nil?
       # Constraint violation and no data found - may need admin access
       return default_value
     elsif response.code != 0 && found_value.nil?
@@ -319,7 +327,13 @@ module LdapLookup
 
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
 
-    perform_search(ldap, filter: search_filter, attributes: result_attrs, label: "get_nested_attribute").each do |item|
+    perform_search(
+      ldap,
+      filter: search_filter,
+      attributes: result_attrs,
+      label: "get_nested_attribute",
+      options: { size: 1 }
+    ).each do |item|
       # Net::LDAP::Entry provides case-insensitive access, try the search attribute first
       string1 = item[search_attr]&.first || item[attr_name]&.first
       if string1
@@ -339,7 +353,7 @@ module LdapLookup
 
     # Check response - Code 19 may occur even when data is found
     response = ldap.get_operation_result
-    if response.code == 19 && found_value.nil?
+    if (response.code == 19 || response.code == 4) && found_value.nil?
       # Constraint violation and no data found - may need admin access
       return nil
     elsif response.code != 0 && found_value.nil?
@@ -358,7 +372,7 @@ module LdapLookup
 
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
 
-    perform_search(ldap, filter: search_filter, label: "uid_exist").each do |item|
+    perform_search(ldap, filter: search_filter, label: "uid_exist", options: { size: 1 }).each do |item|
       if item['uid'].first == search_param
         found = true
         break
@@ -367,7 +381,7 @@ module LdapLookup
 
     # Check response - Code 19 may occur even when user is found
     response = ldap.get_operation_result
-    if response.code == 19 && !found
+    if (response.code == 19 || response.code == 4) && !found
       # Constraint violation and user not found - may need admin access
       return false
     elsif response.code != 0 && !found
@@ -387,7 +401,12 @@ module LdapLookup
   end
 
   def self.get_dept(uniqname)
-    get_nested_attribute(uniqname, 'umichpostaladdressdata.addr1')
+    dept = get_nested_attribute(uniqname, 'umichpostaladdressdata.addr1')
+    return dept if dept
+
+    # Fallback to raw attribute if nested parsing fails or attribute is restricted
+    raw_attr = dept_attribute || 'umichPostalAddressData'
+    get_user_attribute(uniqname, raw_attr, nil)
   end
 
   def self.is_member_of_group?(uid, group_name)

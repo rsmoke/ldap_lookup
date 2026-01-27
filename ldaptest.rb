@@ -23,8 +23,8 @@ class Ldaptest
     # Read encryption from ENV, default to start_tls
     encryption_str = ENV['LDAP_ENCRYPTION'] || 'start_tls'
     config.encryption = encryption_str.to_sym
-    config.dept_attribute = "umichPostalAddressData"
-    config.group_attribute = "umichGroupEmail"
+    config.dept_attribute = ENV['LDAP_DEPT_ATTRIBUTE'] || "umichPostalAddressData"
+    config.group_attribute = ENV['LDAP_GROUP_ATTRIBUTE'] || "umichGroupEmail"
     # Enable LDAP debug logging in this test runner
     debug_str = ENV['LDAP_DEBUG']
     config.debug = debug_str ? debug_str.to_s.downcase == 'true' : true
@@ -49,7 +49,7 @@ class Ldaptest
   end
 
   def result_box(answer)
-    print "\e[2J\e[f"
+    # print "\e[2J\e[f"
     2.times { puts " " }
     puts "Your Results"
     puts "======================================================"

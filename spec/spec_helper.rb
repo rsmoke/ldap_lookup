@@ -47,8 +47,8 @@ RSpec.configure do |config|
       config.username = username
       config.password = password
       config.encryption = (ENV['LDAP_ENCRYPTION'] || "start_tls").to_sym
-      config.dept_attribute = "umichPostalAddressData"
-      config.group_attribute = "umichGroupEmail"
+      config.dept_attribute = ENV['LDAP_DEPT_ATTRIBUTE'] || "umichPostalAddressData"
+      config.group_attribute = ENV['LDAP_GROUP_ATTRIBUTE'] || "umichGroupEmail"
     end
   end
 
