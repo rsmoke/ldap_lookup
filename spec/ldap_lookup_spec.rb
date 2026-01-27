@@ -2,7 +2,7 @@ require 'spec_helper'
 
 RSpec.describe LdapLookup do
   let(:valid_uniqname) { 'rsmoke' }
-  let(:valid_group_name) { 'mis-staff' }
+  let(:valid_group_name) { 'lsa-was-rails-admins' }
   let(:invalid_uniqname) { '3mkew' }
   let(:invalid_group_name) { 'bad_group' }
 
@@ -49,7 +49,7 @@ RSpec.describe LdapLookup do
     context 'when given a valid uniqname' do
       it 'returns the user\'s department' do
         result = LdapLookup.get_dept(valid_uniqname)
-        expect(result).to eq 'LSA Dean: Mgmt Info Systems'
+        expect(result).to eq 'LSA Dean: TS Web&App Dev Svcs'
       end
     end
 
@@ -111,7 +111,7 @@ RSpec.describe LdapLookup do
     context 'when given a valid group name' do
       it 'returns a hash with group information' do
         result = LdapLookup.get_email_distribution_list(valid_group_name)
-        
+
         expect(result).to be_a(Hash)
         expect(result).to have_key('group_name')
         expect(result).to have_key('group_email')
@@ -134,7 +134,7 @@ RSpec.describe LdapLookup do
     context 'when given an invalid group name' do
       it 'returns a hash without members' do
         result = LdapLookup.get_email_distribution_list(invalid_group_name)
-        
+
         expect(result).to be_a(Hash)
         expect(result).not_to have_key('members')
       end
@@ -145,7 +145,7 @@ RSpec.describe LdapLookup do
     context 'when given a valid uniqname' do
       it 'returns an array of group names' do
         result = LdapLookup.all_groups_for_user(valid_uniqname)
-        
+
         expect(result).to be_an(Array)
         expect(result).to all(be_a(String))
       end
@@ -184,21 +184,21 @@ RSpec.describe LdapLookup do
           config.base = 'dc=umich,dc=edu'
           config.password = 'testpass'
         end
-        
+
         connection = LdapLookup.ldap_connection
         expect(connection).to be_a(Net::LDAP)
       end
 
       it 'uses custom bind_dn when provided (for service accounts)' do
         custom_bind_dn = 'cn=service-account,ou=Service Accounts,dc=umich,dc=edu'
-        
+
         LdapLookup.configuration do |config|
           config.username = 'serviceuser'
           config.password = 'testpass'
           config.bind_dn = custom_bind_dn
           config.base = 'dc=umich,dc=edu'
         end
-        
+
         connection = LdapLookup.ldap_connection
         expect(connection).to be_a(Net::LDAP)
       end
@@ -210,7 +210,7 @@ RSpec.describe LdapLookup do
           config.username = nil
           config.password = 'test'
         end
-        
+
         expect { LdapLookup.ldap_connection }.not_to raise_error
       end
     end
@@ -221,7 +221,7 @@ RSpec.describe LdapLookup do
           config.username = 'testuser'
           config.password = nil
         end
-        
+
         expect { LdapLookup.ldap_connection }.not_to raise_error
       end
     end
@@ -234,7 +234,7 @@ RSpec.describe LdapLookup do
           config.encryption = :start_tls
           config.port = '389'
         end
-        
+
         expect { LdapLookup.ldap_connection }.not_to raise_error
       end
     end
@@ -245,7 +245,7 @@ RSpec.describe LdapLookup do
           config.encryption = :simple_tls
           config.port = '636'
         end
-        
+
         expect { LdapLookup.ldap_connection }.not_to raise_error
       end
     end
@@ -271,7 +271,7 @@ RSpec.describe LdapLookup do
     context 'when nested attribute exists' do
       it 'returns the nested attribute value' do
         result = LdapLookup.get_nested_attribute(valid_uniqname, 'umichpostaladdressdata.addr1')
-        expect(result).to eq 'LSA Dean: Mgmt Info Systems'
+        expect(result).to eq 'LSA Dean: TS Web&App Dev Svcs'
       end
     end
 
