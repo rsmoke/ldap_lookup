@@ -136,7 +136,7 @@ RSpec.describe LdapLookup do
         result = LdapLookup.get_email_distribution_list(invalid_group_name)
         
         expect(result).to be_a(Hash)
-        expect(result).not_to have_key('members') || expect(result['members']).to be_empty
+        expect(result).not_to have_key('members')
       end
     end
   end
