@@ -14,7 +14,14 @@ Requirements:
 
 To try the module out:
 1. Clone the repo
-2. Edit the configurations by opening ldaptest.rb and set the *CONFIGURATION BLOCK* to your environment.
+2. Copy the env template and set credentials: `cp .env.example .env`
+3. Load the env vars into your shell (example):
+   ```bash
+   set -a
+   source .env
+   set +a
+   ```
+4. Edit the configurations by opening ldaptest.rb and set the *CONFIGURATION BLOCK* to your environment.
 <pre>
 LdapLookup.configuration do |config|
       config.host = <em>< your host ></em> # "ldap.umich.edu"
@@ -36,7 +43,7 @@ end
 
 The gem can also perform **anonymous binds** for LDAP servers that allow them. To use anonymous binds, leave `LDAP_USERNAME` and `LDAP_PASSWORD` unset.
 
-3. run the ldaptest.rb script
+5. run the ldaptest.rb script
 ```ruby
 ruby ./ldaptest.rb
 ```
@@ -118,19 +125,40 @@ end
 
 #### Step 4: Set Environment Variables
 
-**Never hardcode credentials in your code!** Use environment variables (Hatchbox, Heroku, etc.):
+**Never hardcode credentials in your code!** Use environment variables (Hatchbox, Heroku, etc.).
 
+**Development with `.env.example` (recommended):**
+1. Copy the template: `cp .env.example .env`
+2. Update the values in `.env` for your environment.
+3. Load the variables into your shell (example):
+   ```bash
+   set -a
+   source .env
+   set +a
+   ```
+
+**Typical `.env` values:**
 ```bash
-# In your .env file (for development)
 LDAP_USERNAME=your_service_account_uniqname
 LDAP_PASSWORD=your_service_account_password
+```
 
-# Or export in your shell
+**Optional settings (override defaults as needed):**
+```bash
+LDAP_HOST=ldap.umich.edu
+LDAP_PORT=389
+LDAP_BASE=dc=umich,dc=edu
+LDAP_ENCRYPTION=start_tls
+LDAP_TLS_VERIFY=true
+LDAP_CA_CERT=/path/to/ca-bundle.pem
+LDAP_DEPT_ATTRIBUTE=umichPostalAddressData
+LDAP_GROUP_ATTRIBUTE=umichGroupEmail
+```
+
+**Alternative: export in your shell**
+```bash
 export LDAP_USERNAME=your_service_account_uniqname
 export LDAP_PASSWORD=your_service_account_password
-
-# You can also set these (all can be changed without redeploying):
-# LDAP_HOST, LDAP_PORT, LDAP_BASE, LDAP_ENCRYPTION, LDAP_TLS_VERIFY, LDAP_CA_CERT
 ```
 
 **For Production:**
