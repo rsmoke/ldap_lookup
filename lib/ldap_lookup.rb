@@ -15,10 +15,37 @@ module LdapLookup
   define_setting :bind_dn  # Optional: custom bind DN (for service accounts). If not set, uses uid=username,ou=People,base
   define_setting :encryption, :start_tls  # :start_tls or :simple_tls (LDAPS)
 
+  def self.operation_details(response)
+    details = {
+      code: response.code,
+      message: response.message
+    }
+
+    if response.respond_to?(:error_message) && response.error_message && !response.error_message.empty?
+      details[:error_message] = response.error_message
+    end
+
+    if response.respond_to?(:matched_dn) && response.matched_dn && !response.matched_dn.empty?
+      details[:matched_dn] = response.matched_dn
+    end
+
+    if response.respond_to?(:referrals) && response.referrals && !response.referrals.empty?
+      details[:referrals] = response.referrals
+    end
+
+    details
+  end
+
   def self.get_ldap_response(ldap)
     response = ldap.get_operation_result
     unless response.code.zero?
       error_msg = "Response Code: #{response.code}, Message: #{response.message}"
+      if response.respond_to?(:error_message) && response.error_message && !response.error_message.empty?
+        error_msg += ", Diagnostic: #{response.error_message}"
+      end
+      if response.respond_to?(:matched_dn) && response.matched_dn && !response.matched_dn.empty?
+        error_msg += ", Matched DN: #{response.matched_dn}"
+      end
       # Provide more helpful error messages for common codes
       case response.code
       when 19
@@ -50,23 +77,47 @@ module LdapLookup
     begin
       ldap = ldap_connection
 
+      bind_response = nil
+      bind_exception = nil
+
+      # Try an explicit bind for diagnostics only (can return Code 19 even if searches work)
+      begin
+        bind_success = ldap.bind
+        bind_response = ldap.get_operation_result
+      rescue => e
+        bind_success = false
+        bind_exception = { class: e.class.name, message: e.message }
+      end
+
       # Net::LDAP binds automatically when performing operations (search, etc.)
       # Explicit bind may fail with Code 19 on STARTTLS, but actual operations work fine
       # Test by performing an actual search operation instead of explicit bind
       
       # Try a simple search - this will trigger automatic bind
-      search_result = ldap.search(base: base, filter: "(uid=#{username})", size: 1, attributes: ['uid'])
+      search_result = ldap.search(base: base, filter: "(uid=#{username})", size: 1, attributes: ['uid', 'mail', 'displayName', 'cn', 'givenName', 'sn'])
       search_response = ldap.get_operation_result
+      returned_attributes = []
+      if search_result && !search_result.empty?
+        entry = search_result.first
+        returned_attributes = entry.attribute_names.map(&:to_s).sort
+      end
 
       if search_response.code.zero?
         # Success! Bind worked (automatically during search)
         result.merge!(
           success: true,
           bind_successful: true,
+          bind_attempted: true,
+          bind_result: bind_success,
+          bind_details: bind_response ? operation_details(bind_response) : nil,
+          bind_exception: bind_exception,
           bind_code: 0,
           bind_message: "Bind successful (via automatic bind during search)",
           search_code: search_response.code,
           search_message: search_response.message,
+          search_details: operation_details(search_response),
+          search_entry_count: search_result ? search_result.size : 0,
+          search_returned_attributes: returned_attributes,
           note: "Explicit bind may show Code 19, but operations work correctly"
         )
       else
@@ -74,8 +125,15 @@ module LdapLookup
         result.merge!(
           success: false,
           bind_successful: false,
+          bind_attempted: true,
+          bind_result: bind_success,
+          bind_details: bind_response ? operation_details(bind_response) : nil,
+          bind_exception: bind_exception,
           search_code: search_response.code,
           search_message: search_response.message,
+          search_details: operation_details(search_response),
+          search_entry_count: search_result ? search_result.size : 0,
+          search_returned_attributes: returned_attributes,
           error: "Search failed: Code #{search_response.code}, #{search_response.message}"
         )
 
