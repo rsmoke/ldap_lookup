@@ -37,7 +37,7 @@ module LdapLookup
   # Diagnostic method to test LDAP connection and bind
   def self.test_connection
     auth_dn = bind_dn || "uid=#{username},ou=People,#{base}"
-    
+
     result = {
       bind_dn: auth_dn,
       username: username,
@@ -46,51 +46,51 @@ module LdapLookup
       encryption: encryption,
       base: base
     }
-    
+
     begin
       ldap = ldap_connection
-      
+
       # Check if TLS/SSL connection was established successfully
       # If certificate verification fails, we'd get an exception here
-      
+
       # Net::LDAP binds automatically when auth is set, but let's try explicit bind
       bind_result = ldap.bind
       bind_response = ldap.get_operation_result
-      
+
       result.merge!(
         bind_successful: bind_result,
         bind_code: bind_response.code,
         bind_message: bind_response.message
       )
-      
+
       unless bind_result
         result[:success] = false
         result[:error] = "Bind failed: Code #{bind_response.code}, #{bind_response.message}"
         result[:code] = bind_response.code
-        
+
         # Provide helpful guidance based on error code
         case bind_response.code
         when 19
-          result[:suggestion] = "Constraint Violation on bind. Your account may not be enabled for LDAP access. Contact ITS Service Center to enable LDAP access for your account."
+          result[:suggestion] = "Constraint Violation on bind. If UM is switching to authenticated access tomorrow (Jan 28, 2026), your account may not be enabled yet. Contact ITS Service Center to verify LDAP access is enabled for your account. Accounts may be enabled automatically on Jan 28."
         when 49
           result[:suggestion] = "Invalid Credentials. Check your username and password."
         when 50
           result[:suggestion] = "Insufficient Access Rights. Your account may need LDAP access enabled."
         end
-        
+
         return result
       end
-      
+
       # Try a simple search to verify permissions
       search_result = ldap.search(base: base, filter: "(objectClass=*)", size: 1)
       search_response = ldap.get_operation_result
-      
+
       result.merge!(
         success: search_response.code.zero?,
         search_code: search_response.code,
         search_message: search_response.message
       )
-      
+
     rescue OpenSSL::SSL::SSLError => e
       # Certificate or SSL/TLS connection error
       result.merge!(
@@ -106,7 +106,7 @@ module LdapLookup
         exception: e.class.name
       )
     end
-    
+
     result
   end
 
@@ -123,7 +123,7 @@ module LdapLookup
     if encryption == :start_tls
       connection_params[:encryption] = {
         method: :start_tls,
-        tls_options: { 
+        tls_options: {
           verify_mode: OpenSSL::SSL::VERIFY_PEER
           # System CA certificates should include InCommon certificates
           # If certificate verification fails, check your system's CA certificate store
@@ -132,7 +132,7 @@ module LdapLookup
     elsif encryption == :simple_tls
       connection_params[:encryption] = {
         method: :simple_tls,
-        tls_options: { 
+        tls_options: {
           verify_mode: OpenSSL::SSL::VERIFY_PEER
           # System CA certificates should include InCommon certificates
         }
@@ -155,7 +155,7 @@ module LdapLookup
     end
 
     ldap = Net::LDAP.new(connection_params)
-    
+
     # For STARTTLS, ensure TLS is started before returning connection
     # Net::LDAP should handle this automatically, but let's be explicit
     if encryption == :start_tls
@@ -166,7 +166,7 @@ module LdapLookup
         raise "Failed to establish TLS connection: #{e.message}"
       end
     end
-    
+
     ldap
   end
 
@@ -195,16 +195,16 @@ module LdapLookup
     # Try using the configured attribute name if available, otherwise use the provided name
     search_attr = dept_attribute || attr_name
     result_attrs = [search_attr]
-  
+
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
-  
+
     ldap.search(filter: search_filter, attributes: result_attrs) do |item|
       # Net::LDAP::Entry provides case-insensitive access, try the search attribute first
       string1 = item[search_attr]&.first || item[attr_name]&.first
       if string1
         key_value_pairs = string1.split('}:{')
         # Find the key-value pair for the nested attribute
-        target_pair = key_value_pairs.find { |pair| pair.include?("#{nested_attribute.split('.').last}=") } 
+        target_pair = key_value_pairs.find { |pair| pair.include?("#{nested_attribute.split('.').last}=") }
         # Extract the target value
         if target_pair
           target_pair_value = target_pair.split('=').last
