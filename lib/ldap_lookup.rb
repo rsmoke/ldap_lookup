@@ -94,9 +94,16 @@ module LdapLookup
 
   # Diagnostic method to test LDAP connection and bind
   def self.test_connection
-    auth_dn = bind_dn || "uid=#{username},ou=People,#{base}"
-    search_base = "ou=People,#{base}"
-    search_filter = "(uid=#{username})"
+    username_present = username && !username.to_s.strip.empty?
+    password_present = password && !password.to_s.strip.empty?
+    auth_dn = if bind_dn
+      bind_dn
+    elsif username_present
+      "uid=#{username},ou=People,#{base}"
+    end
+
+    search_base = username_present ? "ou=People,#{base}" : base
+    search_filter = username_present ? "(uid=#{username})" : "(objectClass=*)"
 
     result = {
       bind_dn: auth_dn,
@@ -104,7 +111,8 @@ module LdapLookup
       host: host,
       port: port,
       encryption: encryption,
-      base: base
+      base: base,
+      auth_mode: (username_present && password_present) ? 'authenticated' : 'anonymous'
     }
 
     begin
@@ -239,19 +247,18 @@ module LdapLookup
       }
     end
 
-    # Configure authenticated bind (required as of Jan 20, 2026)
-    # UM documentation: "Authenticate with your uniqname and UMICH (Level-1) password"
+    # Configure authenticated bind (if username/password provided)
     # Note: "simple" bind method = authenticated bind with username/password (not anonymous)
-    if username && password
+    auth_username = username.to_s.strip
+    auth_password = password.to_s
+    if !auth_username.empty? && !auth_password.empty?
       # Use custom bind_dn if provided (for service accounts), otherwise build standard DN
-      auth_bind_dn = bind_dn || "uid=#{username},ou=People,#{base}"
+      auth_bind_dn = bind_dn || "uid=#{auth_username},ou=People,#{base}"
       connection_params[:auth] = {
         method: :simple,  # Simple bind = authenticated bind with username/password
         username: auth_bind_dn,
-        password: password
+        password: auth_password
       }
-    else
-      raise "LDAP authentication required: username and password must be configured. Anonymous binds are no longer supported."
     end
 
     ldap = Net::LDAP.new(connection_params)

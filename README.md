@@ -1,7 +1,7 @@
 # LdapLookup for Ruby [![Gem Version](https://badge.fury.io/rb/ldap_lookup.svg)](https://badge.fury.io/rb/ldap_lookup)
 
 ### Description
-This module is to be used for authenticated lookup of user attributes in the MCommunity service provided at the University of Michigan. It requires authenticated LDAP binds with encryption as per UM IT Security requirements (effective Jan 20, 2026). It can be easily modified to use other LDAP server configurations.
+This module is to be used for authenticated or anonymous lookup of user attributes in the MCommunity service provided at the University of Michigan. It supports authenticated LDAP binds with encryption as per UM IT Security requirements (effective Jan 20, 2026). It can be easily modified to use other LDAP server configurations.
 
 ---
 
@@ -29,10 +29,12 @@ end
 </pre>
 
 **Important:** As of January 20, 2026, UM LDAP requires:
-- **Authenticated binds only** - Anonymous (unauthenticated) binds are no longer supported
-- Username and password are required for all LDAP connections
+- **Authenticated binds only** - Anonymous (unauthenticated) binds are not supported by UM LDAP
+- Username and password are required for UM LDAP connections
 - Encrypted connections (STARTTLS or LDAPS) are mandatory
 - The gem uses LDAP "simple bind" authentication (authenticated with username/password)
+
+The gem can also perform **anonymous binds** for LDAP servers that allow them. To use anonymous binds, leave `LDAP_USERNAME` and `LDAP_PASSWORD` unset.
 
 3. run the ldaptest.rb script
 ```ruby
@@ -78,9 +80,10 @@ LdapLookup.configuration do |config|
   config.port = ENV.fetch('LDAP_PORT', '389')
   config.base = ENV.fetch('LDAP_BASE', 'dc=umich,dc=edu')
   
-  # Authentication - REQUIRED
-  config.username = ENV.fetch('LDAP_USERNAME')
-  config.password = ENV.fetch('LDAP_PASSWORD')
+  # Authentication (optional for anonymous binds)
+  # Leave unset to use anonymous binds (if your LDAP server allows it)
+  config.username = ENV['LDAP_USERNAME']
+  config.password = ENV['LDAP_PASSWORD']
   
   # If using a service account with custom bind DN, uncomment and set:
   # config.bind_dn = 'cn=service-account,ou=Service Accounts,dc=umich,dc=edu'
@@ -113,7 +116,7 @@ end
 
 #### Step 4: Set Environment Variables
 
-**Never hardcode credentials in your code!** Use environment variables:
+**Never hardcode credentials in your code!** Use environment variables (Hatchbox, Heroku, etc.):
 
 ```bash
 # In your .env file (for development)
@@ -123,6 +126,9 @@ LDAP_PASSWORD=your_service_account_password
 # Or export in your shell
 export LDAP_USERNAME=your_service_account_uniqname
 export LDAP_PASSWORD=your_service_account_password
+
+# You can also set these (all can be changed without redeploying):
+# LDAP_HOST, LDAP_PORT, LDAP_BASE, LDAP_ENCRYPTION
 ```
 
 **For Production:**

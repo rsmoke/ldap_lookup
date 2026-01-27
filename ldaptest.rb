@@ -17,8 +17,9 @@ class Ldaptest
     config.host = ENV['LDAP_HOST'] || "ldap.umich.edu"
     config.port = ENV['LDAP_PORT'] || "389"
     config.base = ENV['LDAP_BASE'] || "dc=umich,dc=edu"
-    config.username = ENV['LDAP_USERNAME'] || 'your_uniqname'
-    config.password = ENV['LDAP_PASSWORD'] || 'your_password'
+    # Leave username/password unset for anonymous binds
+    config.username = ENV['LDAP_USERNAME']
+    config.password = ENV['LDAP_PASSWORD']
     # Read encryption from ENV, default to start_tls
     encryption_str = ENV['LDAP_ENCRYPTION'] || 'start_tls'
     config.encryption = encryption_str.to_sym

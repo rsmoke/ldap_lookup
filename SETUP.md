@@ -38,8 +38,9 @@ Edit `config/initializers/ldap_lookup.rb`:
 LdapLookup.configuration do |config|
   config.host = ENV.fetch('LDAP_HOST', 'ldap.umich.edu')
   config.base = ENV.fetch('LDAP_BASE', 'dc=umich,dc=edu')
-  config.username = ENV.fetch('LDAP_USERNAME')
-  config.password = ENV.fetch('LDAP_PASSWORD')
+  # Leave unset to use anonymous binds (if your LDAP server allows it)
+  config.username = ENV['LDAP_USERNAME']
+  config.password = ENV['LDAP_PASSWORD']
   config.encryption = :start_tls
 end
 ```
@@ -93,9 +94,10 @@ LdapLookup.all_groups_for_user('uniqname')
 
 ## Troubleshooting
 
-**Error: "LDAP authentication required"**
-- Make sure `LDAP_USERNAME` and `LDAP_PASSWORD` are set
-- Check that your credentials are correct
+**Anonymous bind fails**
+- Your LDAP server may require authenticated binds
+- Set `LDAP_USERNAME` and `LDAP_PASSWORD` (service account recommended)
+- Verify credentials are correct
 
 **Error: Connection timeout or SSL errors**
 - Verify `config.host` is correct

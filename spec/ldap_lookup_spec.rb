@@ -205,24 +205,24 @@ RSpec.describe LdapLookup do
     end
 
     context 'when username is missing' do
-      it 'raises an error' do
+      it 'creates an anonymous connection' do
         LdapLookup.configuration do |config|
           config.username = nil
           config.password = 'test'
         end
         
-        expect { LdapLookup.ldap_connection }.to raise_error(/LDAP authentication required/)
+        expect { LdapLookup.ldap_connection }.not_to raise_error
       end
     end
 
     context 'when password is missing' do
-      it 'raises an error' do
+      it 'creates an anonymous connection' do
         LdapLookup.configuration do |config|
           config.username = 'testuser'
           config.password = nil
         end
         
-        expect { LdapLookup.ldap_connection }.to raise_error(/LDAP authentication required/)
+        expect { LdapLookup.ldap_connection }.not_to raise_error
       end
     end
   end

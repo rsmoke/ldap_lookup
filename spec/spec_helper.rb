@@ -23,7 +23,8 @@ RSpec.configure do |config|
     if username.nil? || password.nil?
       warn "\n" + "="*70
       warn "WARNING: LDAP_USERNAME and LDAP_PASSWORD not set."
-      warn "Tests require authenticated LDAP credentials."
+      warn "Tests will attempt anonymous binds."
+      warn "UM LDAP requires authenticated binds, so some tests may fail."
       warn ""
       warn "SECURE OPTIONS:"
       warn "  1. Create a .env file (recommended):"
@@ -37,10 +38,6 @@ RSpec.configure do |config|
       warn ""
       warn "NEVER use: LDAP_PASSWORD=xxx bundle exec rspec (visible in process list!)"
       warn "="*70 + "\n"
-      
-      # Use defaults that will fail gracefully
-      username ||= "test_user"
-      password ||= "test_password"
     end
 
     LdapLookup.configuration do |config|

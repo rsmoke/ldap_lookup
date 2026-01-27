@@ -10,11 +10,12 @@ LdapLookup.configuration do |config|
   config.port = ENV.fetch('LDAP_PORT', '389')
   config.base = ENV.fetch('LDAP_BASE', 'dc=umich,dc=edu')
   
-  # Authentication - REQUIRED
+  # Authentication (optional for anonymous binds)
   # Option 1: Use a service account (recommended for production)
   # Request a service account from your IT department
-  config.username = ENV.fetch('LDAP_USERNAME')
-  config.password = ENV.fetch('LDAP_PASSWORD')
+  # Leave unset to use anonymous binds (if your LDAP server allows it)
+  config.username = ENV['LDAP_USERNAME']
+  config.password = ENV['LDAP_PASSWORD']
   
   # Option 2: If your service account uses a custom bind DN format, specify it:
   # config.bind_dn = 'cn=service-account,ou=Service Accounts,dc=umich,dc=edu'
