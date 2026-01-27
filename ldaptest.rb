@@ -1,5 +1,12 @@
 #!/usr/bin/env ruby
 
+# Load .env file if it exists (for local development)
+begin
+  require 'dotenv/load'
+rescue LoadError
+  # dotenv not available, will use environment variables or fallbacks
+end
+
 require_relative "lib/ldap_lookup"
 
 class Ldaptest
@@ -7,8 +14,14 @@ class Ldaptest
 
   ############## CONFIGURATION BLOCK ###################
   LdapLookup.configuration do |config|
-    config.host = "ldap.umich.edu"
-    config.base = "dc=umich,dc=edu"
+    config.host = ENV['LDAP_HOST'] || "ldap.umich.edu"
+    config.port = ENV['LDAP_PORT'] || "389"
+    config.base = ENV['LDAP_BASE'] || "dc=umich,dc=edu"
+    config.username = ENV['LDAP_USERNAME'] || 'your_uniqname'
+    config.password = ENV['LDAP_PASSWORD'] || 'your_password'
+    # Read encryption from ENV, default to start_tls
+    encryption_str = ENV['LDAP_ENCRYPTION'] || 'start_tls'
+    config.encryption = encryption_str.to_sym
     config.dept_attribute = "umichPostalAddressData"
     config.group_attribute = "umichGroupEmail"
   end
@@ -65,6 +78,7 @@ class Ldaptest
     puts "7: check if uid is member of a group"
     puts "+++++++++++++++++++++++++"
     puts "8: what time is it?"
+    puts "99: test LDAP connection (diagnostic)"
     puts "0: exit"
     puts ""
     print "Enter a number: "
@@ -80,6 +94,7 @@ class Ldaptest
     when 6 then result_box(LdapLookup.get_email_distribution_list(@group_uid))
     when 7 then result_box(LdapLookup.is_member_of_group?(@uid, @group_uid))
     when 8 then result_box(timestamp)
+    when 99 then result_box(LdapLookup.test_connection.inspect)
     when 0 then puts "you chose exit!"
 throw(:done)
     else
