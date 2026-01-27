@@ -9,7 +9,7 @@ This module is to be used for authenticated or anonymous lookup of user attribut
 
 Requirements:
 * Ruby at least 2.0.0
-* Gem 'net-ldap' ~> '0.17.0'
+* Gem 'net-ldap' ~> '0.18.0'
 > *The Net::LDAP (aka net-ldap) gem before 0.16.0 for Ruby has a Missing SSL Certificate Validation.*
 
 To try the module out:
@@ -79,21 +79,21 @@ LdapLookup.configuration do |config|
   config.host = ENV.fetch('LDAP_HOST', 'ldap.umich.edu')
   config.port = ENV.fetch('LDAP_PORT', '389')
   config.base = ENV.fetch('LDAP_BASE', 'dc=umich,dc=edu')
-  
+
   # Authentication (optional for anonymous binds)
   # Leave unset to use anonymous binds (if your LDAP server allows it)
   config.username = ENV['LDAP_USERNAME']
   config.password = ENV['LDAP_PASSWORD']
-  
+
   # If using a service account with custom bind DN, uncomment and set:
   # config.bind_dn = 'cn=service-account,ou=Service Accounts,dc=umich,dc=edu'
-  
+
   # Encryption - REQUIRED (defaults to STARTTLS)
   config.encryption = ENV.fetch('LDAP_ENCRYPTION', 'start_tls').to_sym
   # Use :simple_tls for LDAPS on port 636
   # TLS verification (defaults to true). Set LDAP_TLS_VERIFY=false only for local testing.
   # Optional custom CA bundle: set LDAP_CA_CERT=/path/to/ca-bundle.pem
-  
+
   # Optional: Attribute Configuration
   config.dept_attribute = ENV.fetch('LDAP_DEPT_ATTRIBUTE', 'umichPostalAddressData')
   config.group_attribute = ENV.fetch('LDAP_GROUP_ATTRIBUTE', 'umichGroupEmail')
