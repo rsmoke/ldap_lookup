@@ -112,6 +112,7 @@ LdapLookup.configuration do |config|
 
   # If using a service account with custom bind DN, uncomment and set:
   # config.bind_dn = ENV['LDAP_BIND_DN']
+  # Note: LDAP_BIND_DN replaces LDAP_USERNAME, not LDAP_PASSWORD.
 
   # Encryption - REQUIRED (defaults to STARTTLS)
   config.encryption = ENV.fetch('LDAP_ENCRYPTION', 'start_tls').to_sym
