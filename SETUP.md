@@ -44,11 +44,22 @@ LdapLookup.configuration do |config|
   # Service account bind DN (preferred for UM LDAP)
   config.bind_dn = ENV['LDAP_BIND_DN']
   config.encryption = :start_tls
+  # Optional logger for debug output
+  # config.logger = Rails.logger
   # Optional search bases (UM service accounts)
   config.user_base = ENV['LDAP_USER_BASE'] if ENV['LDAP_USER_BASE']
   config.group_base = ENV['LDAP_GROUP_BASE'] if ENV['LDAP_GROUP_BASE']
 end
 ```
+
+### Logger and Debug Output
+
+- Debug logging is controlled by `config.debug` (default is false).
+- If `config.logger` is set, it is used in this order:
+  - `logger.debug(message)` if available.
+  - `logger.info(message)` if `debug` is not available.
+  - `logger.call(message)` if neither `debug` nor `info` are available.
+- If no logger is configured, debug output goes to STDOUT.
 
 ### 4. Set Environment Variables
 
