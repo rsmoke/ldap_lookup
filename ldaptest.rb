@@ -35,7 +35,7 @@ class Ldaptest
     config.group_base = ENV['LDAP_GROUP_BASE'] if ENV['LDAP_GROUP_BASE']
     # Enable LDAP debug logging in this test runner
     debug_str = ENV['LDAP_DEBUG']
-    config.debug = debug_str ? debug_str.to_s.downcase == 'true' : true
+    config.debug = debug_str ? debug_str.to_s.downcase == 'true' : false
   end
   #######################################################
 

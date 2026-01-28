@@ -70,6 +70,7 @@ end
   - `logger.info(message)` if `debug` is not available.
   - `logger.call(message)` if neither `debug` nor `info` are available.
 - If no logger is configured, debug output goes to STDOUT.
+- Security note: debug output can include identifiers (uids, group names, search filters). Avoid sharing logs publicly.
 
 ## Environment Variables
 
