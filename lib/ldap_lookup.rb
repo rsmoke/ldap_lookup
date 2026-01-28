@@ -15,6 +15,7 @@ module LdapLookup
   define_setting :bind_dn  # Optional: custom bind DN (for service accounts). If not set, uses uid=username,ou=People,base
   define_setting :user_base  # Optional: base DN for people lookups (e.g., ou=people,dc=umich,dc=edu)
   define_setting :group_base  # Optional: base DN for group lookups (e.g., ou=user groups,ou=groups,dc=umich,dc=edu)
+  define_setting :diagnostic_uid  # Optional: test UID for diagnostic searches
   define_setting :encryption, :start_tls  # :start_tls or :simple_tls (LDAPS)
   define_setting :debug, false
 
@@ -119,6 +120,8 @@ module LdapLookup
   def self.test_connection
     username_present = username && !username.to_s.strip.empty?
     password_present = password && !password.to_s.strip.empty?
+    diagnostic_uid_value = diagnostic_uid.to_s.strip
+    diagnostic_uid_present = !diagnostic_uid_value.empty?
     bind_dn_present = bind_dn && !bind_dn.to_s.strip.empty?
     auth_dn = if bind_dn_present
       bind_dn
@@ -126,12 +129,19 @@ module LdapLookup
       "uid=#{username},#{user_dn_base}"
     end
 
-    search_base = username_present ? user_search_base : (user_base || base)
-    search_filter = username_present ? "(uid=#{username})" : "(objectClass=*)"
+    search_base = (diagnostic_uid_present || username_present || (user_base && !user_base.to_s.strip.empty?)) ? user_search_base : base
+    search_filter = if diagnostic_uid_present
+      "(uid=#{diagnostic_uid_value})"
+    elsif username_present
+      "(uid=#{username})"
+    else
+      "(uid=*)"
+    end
 
     result = {
       bind_dn: auth_dn,
       username: username,
+      diagnostic_uid: diagnostic_uid_present ? diagnostic_uid_value : nil,
       host: host,
       port: port,
       encryption: encryption,

@@ -16,13 +16,37 @@ RSpec.configure do |config|
   # Configure LDAP settings for tests
   # Credentials should be provided via .env file (see .env.example) or environment variables
   # NEVER commit your .env file or put passwords in command line arguments
+  def configure_ldap_from_env
+    username = ENV['LDAP_USERNAME']
+    password = ENV['LDAP_PASSWORD']
+    bind_dn = ENV['LDAP_BIND_DN']
+
+    LdapLookup.configuration do |config|
+      config.host = ENV['LDAP_HOST'] || "ldap.umich.edu"
+      config.port = ENV['LDAP_PORT'] || "389"
+      config.base = ENV['LDAP_BASE'] || "dc=umich,dc=edu"
+      config.username = username
+      config.password = password
+      config.bind_dn = bind_dn
+      config.encryption = (ENV['LDAP_ENCRYPTION'] || "start_tls").to_sym
+      config.dept_attribute = ENV['LDAP_DEPT_ATTRIBUTE'] || "umichPostalAddressData"
+      config.group_attribute = ENV['LDAP_GROUP_ATTRIBUTE'] || "umichGroupEmail"
+      config.user_base = ENV['LDAP_USER_BASE'] if ENV['LDAP_USER_BASE']
+      config.group_base = ENV['LDAP_GROUP_BASE'] if ENV['LDAP_GROUP_BASE']
+    end
+  end
+
   config.before(:suite) do
     username = ENV['LDAP_USERNAME']
     password = ENV['LDAP_PASSWORD']
-    
-    if username.nil? || password.nil?
+    bind_dn = ENV['LDAP_BIND_DN']
+
+    has_username_auth = !username.to_s.strip.empty? && !password.to_s.strip.empty?
+    has_bind_dn_auth = !bind_dn.to_s.strip.empty? && !password.to_s.strip.empty?
+
+    if !has_username_auth && !has_bind_dn_auth
       warn "\n" + "="*70
-      warn "WARNING: LDAP_USERNAME and LDAP_PASSWORD not set."
+      warn "WARNING: LDAP credentials not set."
       warn "Tests will attempt anonymous binds."
       warn "UM LDAP requires authenticated binds, so some tests may fail."
       warn ""
@@ -34,26 +58,20 @@ RSpec.configure do |config|
       warn "  2. Set in your shell (export, not inline):"
       warn "     export LDAP_USERNAME=your_uniqname"
       warn "     export LDAP_PASSWORD=your_password"
+      warn "     # OR for service accounts:"
+      warn "     export LDAP_BIND_DN=cn=service-account,ou=Applications,o=services"
+      warn "     export LDAP_PASSWORD=your_password"
       warn "     bundle exec rspec"
       warn ""
       warn "NEVER use: LDAP_PASSWORD=xxx bundle exec rspec (visible in process list!)"
       warn "="*70 + "\n"
     end
 
-    LdapLookup.configuration do |config|
-      config.host = ENV['LDAP_HOST'] || "ldap.umich.edu"
-      config.port = ENV['LDAP_PORT'] || "389"
-      config.base = ENV['LDAP_BASE'] || "dc=umich,dc=edu"
-      config.username = username
-      config.password = password
-      config.encryption = (ENV['LDAP_ENCRYPTION'] || "start_tls").to_sym
-      config.dept_attribute = ENV['LDAP_DEPT_ATTRIBUTE'] || "umichPostalAddressData"
-      config.group_attribute = ENV['LDAP_GROUP_ATTRIBUTE'] || "umichGroupEmail"
-    end
+    configure_ldap_from_env
   end
 
   # Reset configuration between tests to avoid state leakage
-  config.after(:each) do
-    # Configuration is class-level, so we don't need to reset unless testing config changes
+  config.before(:each) do
+    configure_ldap_from_env
   end
 end

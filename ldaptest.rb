@@ -22,6 +22,8 @@ class Ldaptest
     config.password = ENV['LDAP_PASSWORD']
     # Optional service account bind DN
     config.bind_dn = ENV['LDAP_BIND_DN']
+    # Optional diagnostic UID to avoid size-limit warnings
+    config.diagnostic_uid = ENV['LDAP_DIAGNOSTIC_UID'] if ENV['LDAP_DIAGNOSTIC_UID']
     # Read encryption from ENV, default to start_tls
     encryption_str = ENV['LDAP_ENCRYPTION'] || 'start_tls'
     config.encryption = encryption_str.to_sym

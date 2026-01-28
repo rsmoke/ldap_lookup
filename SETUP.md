@@ -58,6 +58,7 @@ end
 LDAP_USERNAME=your_service_account
 LDAP_PASSWORD=your_password
 LDAP_BIND_DN=cn=service-account,ou=Applications,o=services
+LDAP_DIAGNOSTIC_UID=your_uniqname
 ```
 
 **Production:**

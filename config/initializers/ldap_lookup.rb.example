@@ -31,6 +31,9 @@ LdapLookup.configuration do |config|
   config.dept_attribute = ENV.fetch('LDAP_DEPT_ATTRIBUTE', 'umichPostalAddressData')
   config.group_attribute = ENV.fetch('LDAP_GROUP_ATTRIBUTE', 'umichGroupEmail')
 
+  # Optional: Diagnostic UID (used by LdapLookup.test_connection)
+  # config.diagnostic_uid = ENV['LDAP_DIAGNOSTIC_UID']
+
   # Optional: Separate search bases for users and groups
   # Example for UM service accounts:
   # config.user_base = ENV.fetch('LDAP_USER_BASE', 'ou=people,dc=umich,dc=edu')

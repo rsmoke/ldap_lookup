@@ -37,6 +37,8 @@ LdapLookup.configuration do |config|
       config.encryption = encryption_str.to_sym
       config.dept_attribute = ENV['LDAP_DEPT_ATTRIBUTE'] || "umichPostalAddressData"
       config.group_attribute = ENV['LDAP_GROUP_ATTRIBUTE'] || "umichGroupEmail"
+      # Optional diagnostic UID (used by LdapLookup.test_connection)
+      config.diagnostic_uid = ENV['LDAP_DIAGNOSTIC_UID'] if ENV['LDAP_DIAGNOSTIC_UID']
       # Optional search bases for UM LDAP
       config.user_base = ENV['LDAP_USER_BASE'] if ENV['LDAP_USER_BASE']
       config.group_base = ENV['LDAP_GROUP_BASE'] if ENV['LDAP_GROUP_BASE']
@@ -169,6 +171,7 @@ LDAP_TLS_VERIFY=true
 LDAP_CA_CERT=/path/to/ca-bundle.pem
 LDAP_DEPT_ATTRIBUTE=umichPostalAddressData
 LDAP_GROUP_ATTRIBUTE=umichGroupEmail
+LDAP_DIAGNOSTIC_UID=your_uniqname
 LDAP_USER_BASE=ou=people,dc=umich,dc=edu
 LDAP_GROUP_BASE=ou=user groups,ou=groups,dc=umich,dc=edu
 ```

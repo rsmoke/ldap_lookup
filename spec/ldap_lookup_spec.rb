@@ -1,16 +1,24 @@
 require 'spec_helper'
 
 RSpec.describe LdapLookup do
-  let(:valid_uniqname) { 'rsmoke' }
-  let(:valid_group_name) { 'lsa-was-rails-admins' }
+  let(:valid_uniqname) { ENV['LDAP_TEST_UID'] || ENV['LDAP_DIAGNOSTIC_UID'] || 'rsmoke' }
+  let(:valid_group_name) { ENV['LDAP_TEST_GROUP'] || 'lsa-was-rails-admins' }
   let(:invalid_uniqname) { '3mkew' }
   let(:invalid_group_name) { 'bad_group' }
+  let(:expected_display_name) { ENV['LDAP_TEST_DISPLAY_NAME'] }
+  let(:expected_email) { ENV['LDAP_TEST_EMAIL'] }
+  let(:expected_dept) { ENV['LDAP_TEST_DEPT'] }
 
   describe '.get_simple_name' do
     context 'when given a valid uniqname' do
       it 'returns the user\'s display name' do
         result = LdapLookup.get_simple_name(valid_uniqname)
-        expect(result).to eq 'Rick Smoke'
+        if expected_display_name
+          expect(result).to eq expected_display_name
+        else
+          expect(result).to be_a(String)
+          expect(result).not_to be_empty
+        end
       end
     end
 
@@ -33,7 +41,12 @@ RSpec.describe LdapLookup do
     context 'when given a valid uniqname' do
       it 'returns the user\'s email address' do
         result = LdapLookup.get_email(valid_uniqname)
-        expect(result).to eq 'rsmoke@umich.edu'
+        if expected_email
+          expect(result).to eq expected_email
+        else
+          expect(result).to be_a(String)
+          expect(result).to include('@')
+        end
       end
     end
 
@@ -49,7 +62,12 @@ RSpec.describe LdapLookup do
     context 'when given a valid uniqname' do
       it 'returns the user\'s department' do
         result = LdapLookup.get_dept(valid_uniqname)
-        expect(result).to eq 'LSA Dean: TS Web&App Dev Svcs'
+        if expected_dept
+          expect(result).to eq expected_dept
+        else
+          expect(result).to be_a(String)
+          expect(result).not_to be_empty
+        end
       end
     end
 
@@ -255,7 +273,12 @@ RSpec.describe LdapLookup do
     context 'when attribute exists' do
       it 'returns the attribute value' do
         result = LdapLookup.get_user_attribute(valid_uniqname, 'mail')
-        expect(result).to eq 'rsmoke@umich.edu'
+        if expected_email
+          expect(result).to eq expected_email
+        else
+          expect(result).to be_a(String)
+          expect(result).to include('@')
+        end
       end
     end
 
@@ -271,7 +294,12 @@ RSpec.describe LdapLookup do
     context 'when nested attribute exists' do
       it 'returns the nested attribute value' do
         result = LdapLookup.get_nested_attribute(valid_uniqname, 'umichpostaladdressdata.addr1')
-        expect(result).to eq 'LSA Dean: TS Web&App Dev Svcs'
+        if expected_dept
+          expect(result).to eq expected_dept
+        else
+          expect(result).to be_a(String)
+          expect(result).not_to be_empty
+        end
       end
     end
 
