@@ -1,10 +1,19 @@
 # LdapLookup for Ruby [![Gem Version](https://badge.fury.io/rb/ldap_lookup.svg)](https://badge.fury.io/rb/ldap_lookup)
 
-## Description
+## Overview
 
-This module is to be used for authenticated or anonymous lookup of user attributes in the MCommunity service provided at the University of Michigan. It supports authenticated LDAP binds with encryption as per UM IT Security requirements (effective Jan 20, 2026). It can be easily modified to use other LDAP server configurations.
+LdapLookup provides authenticated or anonymous lookups of user attributes in the University of Michigan MCommunity LDAP service. It supports encrypted binds per UM IT Security (effective Jan 20, 2026) and can be adapted for other LDAP servers.
 
-## Try It Out
+### UM LDAP Requirements (as of Jan 20, 2026)
+
+* **Authenticated binds only** - UM LDAP does not allow anonymous binds.
+* Username and password are required for UM LDAP.
+* Encrypted connections (STARTTLS or LDAPS) are mandatory.
+* The gem uses LDAP "simple bind" authentication (authenticated with username/password).
+
+The gem can also perform **anonymous binds** for LDAP servers that allow them. To use anonymous binds, leave `LDAP_USERNAME` and `LDAP_PASSWORD` unset.
+
+## Quick Start (Local Test Runner)
 
 ### Requirements
 
@@ -13,11 +22,9 @@ This module is to be used for authenticated or anonymous lookup of user attribut
 
 > The Net::LDAP (aka net-ldap) gem before 0.16.0 for Ruby has a missing SSL certificate validation.
 
-### Quick Start
-
 1. Clone the repo.
-2. Copy the env template and set credentials: `cp .env.example .env`.
-3. Load the env vars into your shell (example):
+2. Copy the env template: `cp .env.example .env`.
+3. Load the env vars into your shell:
 
    ```bash
    set -a
@@ -25,7 +32,7 @@ This module is to be used for authenticated or anonymous lookup of user attribut
    set +a
    ```
 
-4. Edit the configurations by opening `ldaptest.rb` and set the CONFIGURATION BLOCK to your environment (it reads from the `.env` values you just loaded).
+4. Edit the configuration in `ldaptest.rb` (reads from `.env`):
 
    ```ruby
    LdapLookup.configuration do |config|
@@ -49,24 +56,15 @@ This module is to be used for authenticated or anonymous lookup of user attribut
      config.group_base = ENV['LDAP_GROUP_BASE'] if ENV['LDAP_GROUP_BASE']
      # Enable LDAP debug logging in this test runner
      debug_str = ENV['LDAP_DEBUG']
-     config.debug = debug_str ? debug_str.to_s.downcase == 'true' : true
+     config.debug = debug_str ? debug_str.to_s.downcase == 'true' : false
    end
    ```
 
-5. Run the `ldaptest.rb` script:
+5. Run the test script:
 
    ```bash
    ruby ./ldaptest.rb
    ```
-
-### UM LDAP Requirements (as of Jan 20, 2026)
-
-* **Authenticated binds only** - Anonymous (unauthenticated) binds are not supported by UM LDAP.
-* Username and password are required for UM LDAP connections.
-* Encrypted connections (STARTTLS or LDAPS) are mandatory.
-* The gem uses LDAP "simple bind" authentication (authenticated with username/password).
-
-The gem can also perform **anonymous binds** for LDAP servers that allow them. To use anonymous binds, leave `LDAP_USERNAME` and `LDAP_PASSWORD` unset.
 
 ## Installation
 
@@ -88,7 +86,7 @@ bundle install
 
 **For Production Applications (Recommended):**
 
-Request a **service account** from your IT department. Service accounts are designed for automated applications and don't require password changes.
+Request a **service account** from your IT department. Service accounts are designed for automated applications and do not require password changes.
 
 **For Development/Testing:**
 
@@ -162,11 +160,11 @@ end
   * `logger.call(message)` if neither `debug` nor `info` are available.
 * If no logger is configured, debug output goes to STDOUT.
 
-### Step 4: Set Environment Variables
+## Environment Variables
 
-**Never hardcode credentials in your code!** Use environment variables (Hatchbox, Heroku, etc.).
+**Never hardcode credentials in your code.** Use environment variables (Hatchbox, Heroku, etc.).
 
-**Development with `.env.example` (recommended):**
+### Development with `.env.example` (Recommended)
 
 1. Copy the template: `cp .env.example .env`
 2. Update the values in `.env` for your environment.
@@ -186,34 +184,46 @@ LDAP_PASSWORD=your_service_account_password
 LDAP_BIND_DN=cn=service-account,ou=Applications,o=services
 ```
 
-**Optional settings (override defaults as needed):**
+### Production (Hatchbox)
+
+Hatchbox uses environment variables per app or per deployment. Configure these in
+**Hatchbox > App > Environment Variables** (or your deployment pipeline), then redeploy or restart.
+
+**Minimum required for authenticated UM LDAP:**
 
 ```bash
+LDAP_USERNAME=service_account_uniqname
+LDAP_PASSWORD=service_account_password
+LDAP_ENCRYPTION=start_tls
 LDAP_HOST=ldap.umich.edu
 LDAP_PORT=389
 LDAP_BASE=dc=umich,dc=edu
-LDAP_ENCRYPTION=start_tls
+```
+
+**Recommended for service accounts with a custom bind DN:**
+
+```bash
+LDAP_BIND_DN=cn=service-account,ou=Applications,o=services
+```
+
+**Optional tuning:**
+
+```bash
 LDAP_TLS_VERIFY=true
 LDAP_CA_CERT=/path/to/ca-bundle.pem
+LDAP_USER_BASE=ou=people,dc=umich,dc=edu
+LDAP_GROUP_BASE=ou=user groups,ou=groups,dc=umich,dc=edu
 LDAP_DEPT_ATTRIBUTE=umichPostalAddressData
 LDAP_GROUP_ATTRIBUTE=umichGroupEmail
 LDAP_DIAGNOSTIC_UID=your_uniqname
-LDAP_USER_BASE=ou=people,dc=umich,dc=edu
-LDAP_GROUP_BASE=ou=user groups,ou=groups,dc=umich,dc=edu
 ```
 
-#### Alternative: Export in your shell
+### Alternative: Export in Your Shell
 
 ```bash
 export LDAP_USERNAME=your_service_account_uniqname
 export LDAP_PASSWORD=your_service_account_password
 ```
-
-#### For Production
-
-* Use your platform's secrets management (Rails credentials, AWS Secrets Manager, etc.).
-* Never commit credentials to version control.
-* Use service accounts, not personal accounts.
 
 ### Service Account Bind DN
 
@@ -234,25 +244,25 @@ LdapLookup.uid_exist?(uniqname)
 response: true or false (boolean)
 ```
 
-**get_simple_name** returns the display name.
+**get_simple_name** returns the display name or `"not available"`.
 
 ```ruby
 LdapLookup.get_simple_name(uniqname = nil)
-response: name or "No #{attribute} found for #{uniqname}"
+response: name or "not available"
 ```
 
-**get_dept** returns the user's department name.
+**get_dept** returns the user's department name or `nil`.
 
 ```ruby
 LdapLookup.get_dept(uniqname = nil)
-response: dept name or "No #{nested_attribute} found for #{uniqname}"
+response: dept name or nil
 ```
 
-**get_email** returns the user's email address.
+**get_email** returns the user's email address or `nil`.
 
 ```ruby
 LdapLookup.get_email(uniqname = nil)
-response: email or "No #{attribute} found for #{uniqname}"
+response: email or nil
 ```
 
 **is_member_of_group?** returns true/false if uniqname is a member of the specified group.
@@ -262,7 +272,7 @@ LdapLookup.is_member_of_group?(uid = nil, group_name = nil)
 response: true or false (boolean)
 ```
 
-**get_email_distribution_list** returns the list of emails that are associated to a group.
+**get_email_distribution_list** returns a hash with group data or an empty hash.
 
 ```ruby
 LdapLookup.get_email_distribution_list(group_name = nil)
@@ -275,6 +285,25 @@ response: result_hash
 LdapLookup.all_groups_for_user(uniqname = nil)
 response: result_array
 ```
+
+## Troubleshooting
+
+### Auth failures
+
+- UM LDAP requires authenticated binds. Ensure `LDAP_USERNAME` and `LDAP_PASSWORD` are set.
+- For service accounts, set `LDAP_BIND_DN` to the DN provided by your IT team.
+- Confirm the account is enabled for LDAP and the password is current.
+
+### TLS/SSL errors
+
+- Use `LDAP_ENCRYPTION=start_tls` with port `389`, or `simple_tls` with port `636`.
+- If certificate validation fails, set `LDAP_CA_CERT` to a CA bundle path.
+- Avoid `LDAP_TLS_VERIFY=false` outside local testing.
+
+### Bind DN tips
+
+- Default bind DN is `uid=username,ou=People,base`.
+- Service accounts often require a custom DN; set `LDAP_BIND_DN` accordingly.
 
 ## Running Tests
 
@@ -303,7 +332,7 @@ bundle exec rspec
 ### Never do this (insecure)
 
 ```bash
-# ❌ DON'T: Password visible in process list
+# DON'T: Password visible in process list
 LDAP_PASSWORD=xxx bundle exec rspec
 ```
 
@@ -317,4 +346,4 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Code of Conduct
 
-Everyone interacting in the LdapLookup project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/ldap_lookup/blob/master/CODE_OF_CONDUCT.md).
+Everyone interacting in the LdapLookup project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/rsmoke/ldap_lookup/blob/master/CODE_OF_CONDUCT.md).
