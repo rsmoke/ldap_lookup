@@ -4,7 +4,7 @@ This guide helps you set up `ldap_lookup` in a Rails app.
 
 ## Overview
 
-LdapLookup provides authenticated or anonymous lookups of user attributes in the University of Michigan MCommunity LDAP service. It supports encrypted binds per UM IT Security (effective Jan 20, 2026) and can be adapted for other LDAP servers.
+LdapLookup provides authenticated or anonymous lookups of user attributes in the University of Michigan MCommunity LDAP service. It supports encrypted binds per UM IT Security (effective Jan 28, 2026) and can be adapted for other LDAP servers.
 
 ### UM LDAP Requirements (as of Jan 28, 2026)
 
