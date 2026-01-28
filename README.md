@@ -30,11 +30,16 @@ LdapLookup.configuration do |config|
       # Leave username/password unset for anonymous binds
       config.username = ENV['LDAP_USERNAME']
       config.password = ENV['LDAP_PASSWORD']
+      # Service account bind DN (preferred for UM LDAP)
+      config.bind_dn = ENV['LDAP_BIND_DN']
       # Read encryption from ENV, default to start_tls
       encryption_str = ENV['LDAP_ENCRYPTION'] || 'start_tls'
       config.encryption = encryption_str.to_sym
       config.dept_attribute = ENV['LDAP_DEPT_ATTRIBUTE'] || "umichPostalAddressData"
       config.group_attribute = ENV['LDAP_GROUP_ATTRIBUTE'] || "umichGroupEmail"
+      # Optional search bases for UM LDAP
+      config.user_base = ENV['LDAP_USER_BASE'] if ENV['LDAP_USER_BASE']
+      config.group_base = ENV['LDAP_GROUP_BASE'] if ENV['LDAP_GROUP_BASE']
       # Enable LDAP debug logging in this test runner
       debug_str = ENV['LDAP_DEBUG']
       config.debug = debug_str ? debug_str.to_s.downcase == 'true' : true
@@ -99,7 +104,7 @@ LdapLookup.configuration do |config|
   config.password = ENV['LDAP_PASSWORD']
 
   # If using a service account with custom bind DN, uncomment and set:
-  # config.bind_dn = 'cn=service-account,ou=Service Accounts,dc=umich,dc=edu'
+  # config.bind_dn = ENV['LDAP_BIND_DN']
 
   # Encryption - REQUIRED (defaults to STARTTLS)
   config.encryption = ENV.fetch('LDAP_ENCRYPTION', 'start_tls').to_sym
@@ -110,6 +115,10 @@ LdapLookup.configuration do |config|
   # Optional: Attribute Configuration
   config.dept_attribute = ENV.fetch('LDAP_DEPT_ATTRIBUTE', 'umichPostalAddressData')
   config.group_attribute = ENV.fetch('LDAP_GROUP_ATTRIBUTE', 'umichGroupEmail')
+
+  # Optional: Separate search bases for users and groups (UM service accounts)
+  # config.user_base = ENV.fetch('LDAP_USER_BASE', 'ou=people,dc=umich,dc=edu')
+  # config.group_base = ENV.fetch('LDAP_GROUP_BASE', 'ou=user groups,ou=groups,dc=umich,dc=edu')
 end
 ```
 
@@ -147,6 +156,7 @@ end
 ```bash
 LDAP_USERNAME=your_service_account_uniqname
 LDAP_PASSWORD=your_service_account_password
+LDAP_BIND_DN=cn=service-account,ou=Applications,o=services
 ```
 
 **Optional settings (override defaults as needed):**
@@ -159,6 +169,8 @@ LDAP_TLS_VERIFY=true
 LDAP_CA_CERT=/path/to/ca-bundle.pem
 LDAP_DEPT_ATTRIBUTE=umichPostalAddressData
 LDAP_GROUP_ATTRIBUTE=umichGroupEmail
+LDAP_USER_BASE=ou=people,dc=umich,dc=edu
+LDAP_GROUP_BASE=ou=user groups,ou=groups,dc=umich,dc=edu
 ```
 
 **Alternative: export in your shell**
@@ -177,7 +189,7 @@ export LDAP_PASSWORD=your_service_account_password
 If your service account uses a non-standard bind DN format, you can specify it:
 
 ```ruby
-config.bind_dn = 'cn=my-service-account,ou=Service Accounts,dc=umich,dc=edu'
+config.bind_dn = 'cn=my-service-account,ou=Applications,o=services'
 ```
 
 If `bind_dn` is not set, it defaults to: `uid=username,ou=People,base`

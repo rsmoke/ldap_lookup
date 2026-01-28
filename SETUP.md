@@ -41,20 +41,29 @@ LdapLookup.configuration do |config|
   # Leave unset to use anonymous binds (if your LDAP server allows it)
   config.username = ENV['LDAP_USERNAME']
   config.password = ENV['LDAP_PASSWORD']
+  # Service account bind DN (preferred for UM LDAP)
+  config.bind_dn = ENV['LDAP_BIND_DN']
   config.encryption = :start_tls
+  # Optional search bases (UM service accounts)
+  config.user_base = ENV['LDAP_USER_BASE'] if ENV['LDAP_USER_BASE']
+  config.group_base = ENV['LDAP_GROUP_BASE'] if ENV['LDAP_GROUP_BASE']
 end
 ```
 
 ### 4. Set Environment Variables
 
 **Development (.env file):**
+
 ```bash
 LDAP_USERNAME=your_service_account
 LDAP_PASSWORD=your_password
+LDAP_BIND_DN=cn=service-account,ou=Applications,o=services
 ```
 
 **Production:**
+
 Use your platform's secrets management:
+
 - Rails: `config/credentials.yml.enc`
 - Heroku: `heroku config:set LDAP_USERNAME=xxx`
 - AWS: Secrets Manager
@@ -65,7 +74,7 @@ Use your platform's secrets management:
 If your service account uses a custom bind DN format, add:
 
 ```ruby
-config.bind_dn = 'cn=service-account,ou=Service Accounts,dc=umich,dc=edu'
+config.bind_dn = 'cn=service-account,ou=Applications,o=services'
 ```
 
 Your IT department will provide this if it's different from the default format.
@@ -94,17 +103,20 @@ LdapLookup.all_groups_for_user('uniqname')
 
 ## Troubleshooting
 
-**Anonymous bind fails**
+### Anonymous bind fails
+
 - Your LDAP server may require authenticated binds
 - Set `LDAP_USERNAME` and `LDAP_PASSWORD` (service account recommended)
 - Verify credentials are correct
 
-**Error: Connection timeout or SSL errors**
+### Error: Connection timeout or SSL errors
+
 - Verify `config.host` is correct
 - Try `config.encryption = :simple_tls` with `config.port = '636'` for LDAPS
 - Check firewall rules allow outbound LDAP connections
 
-**Service account not working**
+### Service account not working
+
 - Verify the bind DN format with your IT department
 - Set `config.bind_dn` if your service account uses a non-standard format
 

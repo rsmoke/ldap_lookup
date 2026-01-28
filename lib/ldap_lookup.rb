@@ -13,6 +13,8 @@ module LdapLookup
   define_setting :username
   define_setting :password
   define_setting :bind_dn  # Optional: custom bind DN (for service accounts). If not set, uses uid=username,ou=People,base
+  define_setting :user_base  # Optional: base DN for people lookups (e.g., ou=people,dc=umich,dc=edu)
+  define_setting :group_base  # Optional: base DN for group lookups (e.g., ou=user groups,ou=groups,dc=umich,dc=edu)
   define_setting :encryption, :start_tls  # :start_tls or :simple_tls (LDAPS)
   define_setting :debug, false
 
@@ -20,6 +22,27 @@ module LdapLookup
     return unless debug
 
     puts "[LDAP DEBUG] #{message}"
+  end
+
+  def self.user_search_base
+    base_value = user_base.to_s.strip
+    return base_value unless base_value.empty?
+
+    base
+  end
+
+  def self.group_search_base
+    base_value = group_base.to_s.strip
+    return base_value unless base_value.empty?
+
+    base
+  end
+
+  def self.user_dn_base
+    base_value = user_base.to_s.strip
+    return base_value unless base_value.empty?
+
+    "ou=People,#{base}"
   end
 
   def self.perform_search(ldap, base: nil, filter:, attributes: nil, label: nil, options: {})
@@ -96,13 +119,14 @@ module LdapLookup
   def self.test_connection
     username_present = username && !username.to_s.strip.empty?
     password_present = password && !password.to_s.strip.empty?
-    auth_dn = if bind_dn
+    bind_dn_present = bind_dn && !bind_dn.to_s.strip.empty?
+    auth_dn = if bind_dn_present
       bind_dn
     elsif username_present
-      "uid=#{username},ou=People,#{base}"
+      "uid=#{username},#{user_dn_base}"
     end
 
-    search_base = username_present ? "ou=People,#{base}" : base
+    search_base = username_present ? user_search_base : (user_base || base)
     search_filter = username_present ? "(uid=#{username})" : "(objectClass=*)"
 
     result = {
@@ -112,7 +136,7 @@ module LdapLookup
       port: port,
       encryption: encryption,
       base: base,
-      auth_mode: (username_present && password_present) ? 'authenticated' : 'anonymous'
+      auth_mode: ((username_present || bind_dn_present) && password_present) ? 'authenticated' : 'anonymous'
     }
 
     begin
@@ -133,7 +157,7 @@ module LdapLookup
       # Net::LDAP binds automatically when performing operations (search, etc.)
       # Explicit bind may fail with Code 19 on STARTTLS, but actual operations work fine
       # Test by performing an actual search operation instead of explicit bind
-      
+
       # Try a simple search - this will trigger automatic bind
       search_result = perform_search(
         ldap,
@@ -253,9 +277,10 @@ module LdapLookup
     # Note: "simple" bind method = authenticated bind with username/password (not anonymous)
     auth_username = username.to_s.strip
     auth_password = password.to_s
-    if !auth_username.empty? && !auth_password.empty?
+    auth_bind_dn = bind_dn.to_s.strip
+    if !auth_password.empty? && (!auth_bind_dn.empty? || !auth_username.empty?)
       # Use custom bind_dn if provided (for service accounts), otherwise build standard DN
-      auth_bind_dn = bind_dn || "uid=#{auth_username},ou=People,#{base}"
+      auth_bind_dn = auth_bind_dn.empty? ? "uid=#{auth_username},#{user_dn_base}" : auth_bind_dn
       connection_params[:auth] = {
         method: :simple,  # Simple bind = authenticated bind with username/password
         username: auth_bind_dn,
@@ -289,6 +314,7 @@ module LdapLookup
 
     perform_search(
       ldap,
+      base: user_search_base,
       filter: search_filter,
       attributes: result_attrs,
       label: "get_user_attribute",
@@ -329,6 +355,7 @@ module LdapLookup
 
     perform_search(
       ldap,
+      base: user_search_base,
       filter: search_filter,
       attributes: result_attrs,
       label: "get_nested_attribute",
@@ -372,7 +399,7 @@ module LdapLookup
 
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
 
-    perform_search(ldap, filter: search_filter, label: "uid_exist", options: { size: 1 }).each do |item|
+    perform_search(ldap, base: user_search_base, filter: search_filter, label: "uid_exist", options: { size: 1 }).each do |item|
       if item['uid'].first == search_param
         found = true
         break
@@ -420,7 +447,7 @@ module LdapLookup
       Net::LDAP::Filter.eq('objectClass', 'group')
     )
 
-    perform_search(ldap, filter: search_filter, attributes: result_attrs, label: "is_member_of_group").each do |item|
+    perform_search(ldap, base: group_search_base, filter: search_filter, attributes: result_attrs, label: "is_member_of_group").each do |item|
       members = item['member']
       if members && members.any? { |entry| entry.split(',').first.split('=')[1] == uid }
         found = true
@@ -455,7 +482,7 @@ module LdapLookup
       Net::LDAP::Filter.eq('objectClass', 'group')
     )
 
-    perform_search(ldap, filter: search_filter, attributes: result_attrs, label: "get_email_distribution_list").each do |item|
+    perform_search(ldap, base: group_search_base, filter: search_filter, attributes: result_attrs, label: "get_email_distribution_list").each do |item|
       found_data = true
       result_hash['group_name'] = item['cn']&.first
       result_hash['group_email'] = item['umichGroupEmail']&.first
@@ -483,8 +510,8 @@ module LdapLookup
     result_attrs = ['dn']
 
     # Use configured base instead of hardcoded dc=umich,dc=edu
-    member_dn = "uid=#{uid},ou=People,#{base}"
-    perform_search(ldap, filter: "member=#{member_dn}", attributes: result_attrs, label: "all_groups_for_user").each do |item|
+    member_dn = "uid=#{uid},#{user_dn_base}"
+    perform_search(ldap, base: group_search_base, filter: "member=#{member_dn}", attributes: result_attrs, label: "all_groups_for_user").each do |item|
       item.each { |key, value| result_array << value.first.split('=')[1].split(',')[0] }
     end
 
