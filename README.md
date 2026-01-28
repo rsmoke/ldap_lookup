@@ -311,6 +311,8 @@ response: result_array
 
 **Security Note:** Never put passwords in command line arguments. They are visible in process lists and shell history.
 
+**Test Vars Note:** `LDAP_TEST_*` and `LDAP_DIAGNOSTIC_UID` are optional and only used by the test suite/diagnostics.
+
 ### Recommended: Use a .env file (most secure)
 
 1. Copy the example file: `cp .env.example .env`
