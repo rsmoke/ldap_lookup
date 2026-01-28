@@ -2,9 +2,9 @@
 
 ## Overview
 
-LdapLookup provides authenticated or anonymous lookups of user attributes in the University of Michigan MCommunity LDAP service. It supports encrypted binds per UM IT Security (effective Jan 20, 2026) and can be adapted for other LDAP servers.
+LdapLookup provides authenticated or anonymous lookups of user attributes in the University of Michigan MCommunity LDAP service. It supports encrypted binds per UM IT Security (effective Jan 28, 2026) and can be adapted for other LDAP servers.
 
-### UM LDAP Requirements (as of Jan 20, 2026)
+### UM LDAP Requirements (as of Jan 28, 2026)
 
 * **Authenticated binds only** - UM LDAP does not allow anonymous binds.
 * Username and password are required for UM LDAP.
@@ -112,7 +112,7 @@ LdapLookup.configuration do |config|
 
   # If using a service account with custom bind DN, uncomment and set:
   # config.bind_dn = ENV['LDAP_BIND_DN']
-  # Note: LDAP_BIND_DN replaces LDAP_USERNAME, not LDAP_PASSWORD.
+  # Note: LDAP_BIND_DN replaces LDAP_USERNAME (LDAP_USERNAME can be unset), not LDAP_PASSWORD.
 
   # Encryption - REQUIRED (defaults to STARTTLS)
   config.encryption = ENV.fetch('LDAP_ENCRYPTION', 'start_tls').to_sym
