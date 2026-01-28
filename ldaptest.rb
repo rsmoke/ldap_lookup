@@ -17,14 +17,15 @@ class Ldaptest
     config.host = ENV['LDAP_HOST'] || "ldap.umich.edu"
     config.port = ENV['LDAP_PORT'] || "389"
     config.base = ENV['LDAP_BASE'] || "dc=umich,dc=edu"
-    # Leave username/password unset for anonymous binds
+    # UM LDAP requires authenticated binds. Ensure LDAP_USERNAME and LDAP_PASSWORD are set.
+    # Confirm the account is enabled for LDAP and the password is current.
     config.username = ENV['LDAP_USERNAME']
     config.password = ENV['LDAP_PASSWORD']
-    # Optional service account bind DN
+    # For service accounts, set LDAP_BIND_DN to the DN provided by your IT team.
     config.bind_dn = ENV['LDAP_BIND_DN']
     # Optional diagnostic UID to avoid size-limit warnings
     config.diagnostic_uid = ENV['LDAP_DIAGNOSTIC_UID'] if ENV['LDAP_DIAGNOSTIC_UID']
-    # Read encryption from ENV, default to start_tls
+    # Use LDAP_ENCRYPTION=start_tls with port 389, or simple_tls with port 636.
     encryption_str = ENV['LDAP_ENCRYPTION'] || 'start_tls'
     config.encryption = encryption_str.to_sym
     config.dept_attribute = ENV['LDAP_DEPT_ATTRIBUTE'] || "umichPostalAddressData"
