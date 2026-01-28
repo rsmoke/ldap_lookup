@@ -159,6 +159,7 @@ end
   * `logger.info(message)` if `debug` is not available.
   * `logger.call(message)` if neither `debug` nor `info` are available.
 * If no logger is configured, debug output goes to STDOUT.
+* Security note: debug output can include identifiers (uids, group names, search filters). Avoid sharing logs publicly.
 
 ## Environment Variables
 
@@ -290,20 +291,20 @@ response: result_array
 
 ### Auth failures
 
-- UM LDAP requires authenticated binds. Ensure `LDAP_USERNAME` and `LDAP_PASSWORD` are set.
-- For service accounts, set `LDAP_BIND_DN` to the DN provided by your IT team.
-- Confirm the account is enabled for LDAP and the password is current.
+* UM LDAP requires authenticated binds. Ensure `LDAP_USERNAME` and `LDAP_PASSWORD` are set.
+* For service accounts, set `LDAP_BIND_DN` to the DN provided by your IT team.
+* Confirm the account is enabled for LDAP and the password is current.
 
 ### TLS/SSL errors
 
-- Use `LDAP_ENCRYPTION=start_tls` with port `389`, or `simple_tls` with port `636`.
-- If certificate validation fails, set `LDAP_CA_CERT` to a CA bundle path.
-- Avoid `LDAP_TLS_VERIFY=false` outside local testing.
+* Use `LDAP_ENCRYPTION=start_tls` with port `389`, or `simple_tls` with port `636`.
+* If certificate validation fails, set `LDAP_CA_CERT` to a CA bundle path.
+* Avoid `LDAP_TLS_VERIFY=false` outside local testing.
 
 ### Bind DN tips
 
-- Default bind DN is `uid=username,ou=People,base`.
-- Service accounts often require a custom DN; set `LDAP_BIND_DN` accordingly.
+* Default bind DN is `uid=username,ou=People,base`.
+* Service accounts often require a custom DN; set `LDAP_BIND_DN` accordingly.
 
 ## Running Tests
 
