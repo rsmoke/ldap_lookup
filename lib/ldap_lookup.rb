@@ -18,11 +18,55 @@ module LdapLookup
   define_setting :diagnostic_uid  # Optional: test UID for diagnostic searches
   define_setting :encryption, :start_tls  # :start_tls or :simple_tls (LDAPS)
   define_setting :debug, false
+  define_setting :logger  # Optional logger (responds to debug/info or call)
 
   def self.debug_log(message)
     return unless debug
 
-    puts "[LDAP DEBUG] #{message}"
+    formatted = "[LDAP DEBUG] #{message}"
+    log_target = logger
+    if log_target
+      if log_target.respond_to?(:debug)
+        log_target.debug(formatted)
+      elsif log_target.respond_to?(:info)
+        log_target.info(formatted)
+      elsif log_target.respond_to?(:call)
+        log_target.call(formatted)
+      else
+        puts formatted
+      end
+    else
+      puts formatted
+    end
+  end
+
+  def self.blank?(value)
+    value.nil? || value.to_s.strip.empty?
+  end
+
+  def self.extract_dn_attribute(dn_value, attribute)
+    return nil if blank?(dn_value) || blank?(attribute)
+
+    attr_key = attribute.to_s.downcase
+    begin
+      parsed = Net::LDAP::DN.new(dn_value)
+      parsed.to_a.each do |rdn|
+        rdn.each do |pair|
+          attr, val, _type = pair
+          return val if attr.to_s.downcase == attr_key
+        end
+      end
+    rescue => e
+      debug_log("dn parse failed: #{e.class} #{e.message}")
+    end
+
+    # Fallback: basic parsing (may fail with escaped commas)
+    dn_value.split(',').each do |segment|
+      key, value = segment.split('=', 2)
+      return value if key && key.strip.downcase == attr_key
+    end
+
+    nil
   end
 
   def self.user_search_base
@@ -315,6 +359,8 @@ module LdapLookup
   end
 
   def self.get_user_attribute(uniqname, attribute, default_value = nil)
+    return default_value if blank?(uniqname) || blank?(attribute)
+
     ldap = ldap_connection
     search_param = uniqname
     result_attrs = [attribute]
@@ -352,6 +398,8 @@ module LdapLookup
   end
 
   def self.get_nested_attribute(uniqname, nested_attribute)
+    return nil if blank?(uniqname) || blank?(nested_attribute)
+
     ldap = ldap_connection
     search_param = uniqname
     # Specify the full nested attribute path using dot notation
@@ -403,13 +451,22 @@ module LdapLookup
 
   # method to check if a uid exist in LDAP
   def self.uid_exist?(uniqname)
+    return false if blank?(uniqname)
+
     ldap = ldap_connection
     search_param = uniqname
     found = false
 
     search_filter = Net::LDAP::Filter.eq('uid', search_param)
 
-    perform_search(ldap, base: user_search_base, filter: search_filter, label: "uid_exist", options: { size: 1 }).each do |item|
+    perform_search(
+      ldap,
+      base: user_search_base,
+      filter: search_filter,
+      attributes: ['uid'],
+      label: "uid_exist",
+      options: { size: 1 }
+    ).each do |item|
       if item['uid'].first == search_param
         found = true
         break
@@ -447,6 +504,8 @@ module LdapLookup
   end
 
   def self.is_member_of_group?(uid, group_name)
+    return false if blank?(uid) || blank?(group_name)
+
     ldap = ldap_connection
     search_param = group_name
     result_attrs = ['member']
@@ -459,7 +518,7 @@ module LdapLookup
 
     perform_search(ldap, base: group_search_base, filter: search_filter, attributes: result_attrs, label: "is_member_of_group").each do |item|
       members = item['member']
-      if members && members.any? { |entry| entry.split(',').first.split('=')[1] == uid }
+      if members && members.any? { |entry| extract_dn_attribute(entry, 'uid') == uid }
         found = true
         break
       end
@@ -480,6 +539,8 @@ module LdapLookup
   end
 
   def self.get_email_distribution_list(group_name)
+    return {} if blank?(group_name)
+
     ldap = ldap_connection
     result_hash = {}
     found_data = false
@@ -496,7 +557,7 @@ module LdapLookup
       found_data = true
       result_hash['group_name'] = item['cn']&.first
       result_hash['group_email'] = item['umichGroupEmail']&.first
-      members = item['member']&.map { |individual| individual.split(',').first.split('=')[1] }
+      members = item['member']&.map { |individual| extract_dn_attribute(individual, 'uid') }&.compact
       result_hash['members'] = members&.sort || []
     end
 
@@ -514,6 +575,8 @@ module LdapLookup
   end
 
   def self.all_groups_for_user(uid)
+    return [] if blank?(uid)
+
     ldap = ldap_connection
     result_array = []
 
@@ -521,8 +584,11 @@ module LdapLookup
 
     # Use configured base instead of hardcoded dc=umich,dc=edu
     member_dn = "uid=#{uid},#{user_dn_base}"
-    perform_search(ldap, base: group_search_base, filter: "member=#{member_dn}", attributes: result_attrs, label: "all_groups_for_user").each do |item|
-      item.each { |key, value| result_array << value.first.split('=')[1].split(',')[0] }
+    search_filter = Net::LDAP::Filter.eq('member', member_dn)
+    perform_search(ldap, base: group_search_base, filter: search_filter, attributes: result_attrs, label: "all_groups_for_user").each do |item|
+      dn_value = item.respond_to?(:dn) ? item.dn : item['dn']&.first
+      group_name = extract_dn_attribute(dn_value, 'cn')
+      result_array << group_name if group_name
     end
 
     # Check response - may raise Constraint Violation for regular users
